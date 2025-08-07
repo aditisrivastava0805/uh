@@ -78,8 +78,15 @@ def analyze_python_code(python_file_path, target_python_version):
     print(f"Analyzing {python_file_path} for Python {target_python_version} modernization...")
     
     try:
-        with open(python_file_path, 'r') as f:
+        with open(python_file_path, 'r', encoding='utf-8') as f:
             python_code = f.read()
+    except UnicodeDecodeError:
+        try:
+            with open(python_file_path, 'r', encoding='latin-1') as f:
+                python_code = f.read()
+        except UnicodeDecodeError:
+            with open(python_file_path, 'r', encoding='cp1252') as f:
+                python_code = f.read()
     except Exception as e:
         print(f"Error reading Python file: {e}")
         return f"Error reading Python file: {e}"

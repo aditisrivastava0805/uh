@@ -179,9 +179,17 @@ def modernize_adaptation_pod_scripts(repo_path, uplift_config):
         send_event("modernizing_python", "log", f"Processing: {file_path}")
         
         try:
-            # Read original code
-            with open(file_path, 'r', encoding='utf-8') as f:
-                original_code = f.read()
+            # Read original code with fallback encoding
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    original_code = f.read()
+            except UnicodeDecodeError:
+                try:
+                    with open(file_path, 'r', encoding='latin-1') as f:
+                        original_code = f.read()
+                except UnicodeDecodeError:
+                    with open(file_path, 'r', encoding='cp1252') as f:
+                        original_code = f.read()
             
             # Analyze Python code
             analysis_findings = analyze_python_code(file_path, uplift_config.get('target_version', '3.9'))

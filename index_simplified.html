@@ -492,6 +492,9 @@
                         <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
                         <button id="cancelBtn" class="btn btn-danger" style="display: none;">❌ Cancel</button>
                         <button id="testEventsBtn" class="btn btn-secondary" style="margin-top: 10px;">🧪 Test Events</button>
+                        <div id="connectionStatus" style="margin-top: 10px; font-size: 12px; color: #666;">
+                            🔴 Event stream: Disconnected
+                        </div>
                     </div>
                 </div>
 
@@ -762,6 +765,16 @@
                     showNotification('Modernization process started', 'success');
                     startEventStream();
                     updateUIForRunning();
+                    
+                    // Add a small delay to ensure event stream is connected
+                    setTimeout(() => {
+                        console.log('🔍 Checking event stream connection...');
+                        if (eventSource && eventSource.readyState === EventSource.OPEN) {
+                            console.log('✅ Event stream is connected and ready');
+                        } else {
+                            console.log('⚠️ Event stream may not be connected');
+                        }
+                    }, 1000);
                 } else {
                     showNotification('Error starting process: ' + data.message, 'error');
                 }
@@ -818,16 +831,25 @@
             eventSource = new EventSource('/stream');
             
             eventSource.onopen = function() {
-                console.log('Event stream connected');
+                console.log('✅ Event stream connected');
+                updateConnectionStatus('🟢 Event stream: Connected');
             };
 
             eventSource.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                handleEvent(data);
+                try {
+                    console.log('📨 Raw event received:', event.data);
+                    const data = JSON.parse(event.data);
+                    console.log('📨 Parsed event data:', data);
+                    handleEvent(data);
+                } catch (error) {
+                    console.error('❌ Error parsing event data:', error);
+                    console.error('Raw data:', event.data);
+                }
             };
 
             eventSource.onerror = function(error) {
-                console.error('Event stream error:', error);
+                console.error('❌ Event stream error:', error);
+                updateConnectionStatus('🔴 Event stream: Error');
                 eventSource.close();
             };
         }
@@ -953,6 +975,12 @@
         }
 
         function testEvents() {
+            // First ensure event stream is connected
+            if (!eventSource || eventSource.readyState !== EventSource.OPEN) {
+                console.log('🔄 Reconnecting event stream for test...');
+                startEventStream();
+            }
+            
             fetch('/api/test-events', {
                 method: 'POST'
             })
@@ -968,6 +996,13 @@
                 console.error('Error testing events:', error);
                 showNotification('Error testing events', 'error');
             });
+        }
+
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                statusElement.textContent = status;
+            }
         }
 
         function showNotification(message, type) {
