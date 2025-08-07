@@ -298,6 +298,129 @@
             display: block;
         }
 
+        /* Uplift Mode Selection Styles */
+        .uplift-mode-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            border: 1px solid #e9ecef;
+        }
+
+        .uplift-mode-section h3 {
+            margin-bottom: 15px;
+            color: var(--dark-color);
+            font-size: 1.1rem;
+        }
+
+        .mode-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: white;
+        }
+
+        .mode-option:hover {
+            border-color: var(--primary-color);
+            background-color: #f0f8ff;
+        }
+
+        .mode-option input[type="radio"] {
+            margin-right: 12px;
+            margin-top: 2px;
+        }
+
+        .mode-option input[type="radio"]:checked + .mode-label {
+            color: var(--primary-color);
+        }
+
+        .mode-label {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .mode-icon {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+
+        .mode-description {
+            font-size: 0.9rem;
+            color: #666;
+            margin-left: 25px;
+        }
+
+        /* Module Selection Styles */
+        .module-selection-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            border: 1px solid #e9ecef;
+        }
+
+        .module-selection-section h3 {
+            margin-bottom: 15px;
+            color: var(--dark-color);
+            font-size: 1.1rem;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .module-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: var(--border-radius);
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .module-checkbox:hover {
+            border-color: var(--primary-color);
+            background-color: #f0f8ff;
+        }
+
+        .module-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .module-checkbox input[type="checkbox"]:checked + .module-label {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .module-label {
+            font-size: 0.9rem;
+            color: var(--dark-color);
+        }
+
+        .module-summary {
+            font-size: 0.9rem;
+            color: #666;
+            text-align: right;
+        }
+
         .product-group {
             margin-bottom: 20px;
             border: 1px solid #ddd;
@@ -587,48 +710,9 @@
             border-top: 1px solid #ddd;
         }
 
-        #previewPromptBtn {
-            background-color: #6c757d;
-            color: white;
-        }
 
-        #previewPromptBtn:hover {
-            background-color: #5a6268;
-        }
 
-        .prompt-stats {
-            background: #f0f0f0;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 5px;
-        }
 
-        .rag-context {
-            margin-bottom: 20px;
-        }
-
-        .rag-context pre {
-            background: #e8f5e8;
-            padding: 10px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .full-prompt {
-            margin-top: 10px;
-        }
-
-        .full-prompt pre {
-            background: #f8f8f8;
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            font-family: monospace;
-            font-size: 12px;
-            line-height: 1.4;
-        }
 
         /* Uplift Mode Selection Styles */
         .uplift-mode-selection {
@@ -1043,6 +1127,42 @@
                     
                     <div class="controls">
                         <h2>Controls</h2>
+                        
+                        <!-- Uplift Mode Selection -->
+                        <div class="uplift-mode-section">
+                            <h3>Uplift Mode</h3>
+                            <div class="mode-selector">
+                                <label class="mode-option">
+                                    <input type="radio" name="upliftMode" value="jdk" checked>
+                                    <span class="mode-label">
+                                        <span class="mode-icon">☕</span>
+                                        JDK Uplift
+                                    </span>
+                                    <span class="mode-description">Modernize Java code from JDK 8 to JDK 17</span>
+                                </label>
+                                <label class="mode-option">
+                                    <input type="radio" name="upliftMode" value="adaptation_pod">
+                                    <span class="mode-label">
+                                        <span class="mode-icon">🐍</span>
+                                        Adaptation Pod
+                                    </span>
+                                    <span class="mode-description">Modernize Python code in adaptation pod modules</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Module Selection (for Adaptation Pod mode) -->
+                        <div class="module-selection-section" id="moduleSelectionSection" style="display: none;">
+                            <h3>Select Modules to Uplift</h3>
+                            <p class="description">Choose which adaptation pod modules to modernize:</p>
+                            <div class="module-grid" id="moduleGrid">
+                                <!-- Modules will be populated dynamically -->
+                            </div>
+                            <div class="module-summary">
+                                <span>Selected: <span id="selectedModuleCount">0</span> modules</span>
+                            </div>
+                        </div>
+                        
                         <button id="startButton">
                             <span class="spinner hidden"></span>
                             Start Uplift Process
@@ -1067,10 +1187,10 @@
                                 <div class="report-buttons"></div>
                             </div>
                             
-                            <!-- Stage 2: Uplifting ESSVT -->
+                            <!-- Stage 2: Uplifting Test Code -->
                             <div id="uplifting_essvt" class="stage-block">
                                 <div class="stage-header">
-                                    <div class="stage-title">Stage 2: Uplifting ESSVT Test Code</div>
+                                    <div class="stage-title" id="stage2-title">Stage 2: Uplifting ESSVT Test Code</div>
                                     <div class="stage-status">Pending</div>
                                 </div>
                                 <p class="summary">Waiting to uplift ESSVT test code to JDK 17...</p>
@@ -1078,10 +1198,10 @@
                                 <div class="full-log"></div>
                             </div>
                             
-                            <!-- Stage 3: ESSVT Uplifted Tests -->
+                            <!-- Stage 3: Test Code Validation -->
                             <div id="essvt_uplifted_tests" class="stage-block">
                                 <div class="stage-header">
-                                    <div class="stage-title">Stage 3: ESSVT Uplifted Tests</div>
+                                    <div class="stage-title" id="stage3-title">Stage 3: ESSVT Uplifted Tests</div>
                                     <div class="stage-status">Pending</div>
                                 </div>
                                 <p class="summary">Waiting to run uplifted ESSVT tests against original source code...</p>
@@ -1091,7 +1211,7 @@
                             <!-- Stage 4: Uplifting Source Code -->
                             <div id="uplifting_source" class="stage-block">
                                 <div class="stage-header">
-                                    <div class="stage-title">Stage 4: Uplifting Source Code</div>
+                                    <div class="stage-title" id="stage4-title">Stage 4: Uplifting Source Code</div>
                                     <div class="stage-status">Pending</div>
                                 </div>
                                 <p class="summary">Waiting to uplift source code to JDK 17...</p>
@@ -1167,45 +1287,9 @@
         </div>
     </div>
 
-    <!-- Add this button somewhere in your existing UI -->
-    <div class="debug-section">
-        <h3>🔍 Debug Tools</h3>
-        <button id="previewPromptBtn" class="btn btn-secondary">
-            Preview Enhanced Prompt
-        </button>
-    </div>
 
-    <!-- Add this modal for displaying the prompt -->
-    <div id="promptModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
-        <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 1200px; max-height: 80%; overflow-y: auto;">
-            <div class="modal-header">
-                <h2>🔍 Enhanced Prompt Preview</h2>
-                <span class="close" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <div class="prompt-stats" style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-                    <strong>Prompt Statistics:</strong>
-                    <ul>
-                        <li>Total Prompt Length: <span id="promptLength">-</span> characters</li>
-                        <li>RAG Context Length: <span id="ragContextLength">-</span> characters</li>
-                        <li>Selected Libraries: <span id="selectedLibrariesCount">-</span></li>
-                        <li>Target JDK: <span id="targetJdk">-</span></li>
-                    </ul>
-                </div>
-                
-                <div class="rag-context" style="margin-bottom: 20px;">
-                    <h4>📚 RAG Context Retrieved:</h4>
-                    <pre id="ragContextPreview" style="background: #e8f5e8; padding: 10px; border-radius: 5px; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">Loading...</pre>
-                </div>
-                
-                <div class="full-prompt">
-                    <h4>📝 Complete Enhanced Prompt:</h4>
-                    <pre id="fullPromptPreview" style="background: #f8f8f8; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">Loading...</pre>
-                </div>
-            </div>
-        </div>
-    </div>
+
+
 
     <script>
         // Global state
@@ -1306,6 +1390,146 @@
         };
         
         let selectedAdaptationModules = [];
+        
+        // DOM Elements for uplift mode
+        const modeOptions = document.querySelectorAll('input[name="upliftMode"]');
+        const moduleSelectionSection = document.getElementById('moduleSelectionSection');
+        const moduleGrid = document.getElementById('moduleGrid');
+        const selectedModuleCount = document.getElementById('selectedModuleCount');
+        
+        // Initialize uplift mode functionality
+        function initializeUpliftModeHandlers() {
+            // Handle mode selection
+            modeOptions.forEach(option => {
+                option.addEventListener('change', (e) => {
+                    upliftMode = e.target.value;
+                    updateModeUI();
+                    updateStageDescriptions(upliftMode);
+                });
+            });
+            
+            // Initialize module selection
+            populateModuleGrid();
+            updateModeUI();
+        }
+        
+        // Update UI based on selected mode
+        function updateModeUI() {
+            if (upliftMode === 'adaptation_pod') {
+                moduleSelectionSection.style.display = 'block';
+                // Hide library selection for adaptation pod mode
+                document.querySelector('.library-section').style.display = 'none';
+            } else {
+                moduleSelectionSection.style.display = 'none';
+                // Show library selection for JDK mode
+                document.querySelector('.library-section').style.display = 'block';
+            }
+        }
+        
+        // Populate module grid with available modules
+        function populateModuleGrid() {
+            moduleGrid.innerHTML = '';
+            
+            // Flatten all modules from different categories
+            const allModules = [];
+            Object.values(adaptationPodModules).forEach(category => {
+                Object.entries(category.modules).forEach(([moduleId, moduleName]) => {
+                    allModules.push({
+                        id: moduleId,
+                        name: moduleName,
+                        category: category.name
+                    });
+                });
+            });
+            
+            // Create checkboxes for each module
+            allModules.forEach(module => {
+                const checkboxContainer = document.createElement('label');
+                checkboxContainer.className = 'module-checkbox';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = module.id;
+                checkbox.addEventListener('change', updateSelectedModules);
+                
+                const label = document.createElement('span');
+                label.className = 'module-label';
+                label.textContent = module.name;
+                
+                checkboxContainer.appendChild(checkbox);
+                checkboxContainer.appendChild(label);
+                moduleGrid.appendChild(checkboxContainer);
+            });
+        }
+        
+        // Update selected modules count and list
+        function updateSelectedModules() {
+            const checkboxes = moduleGrid.querySelectorAll('input[type="checkbox"]:checked');
+            selectedAdaptationModules = Array.from(checkboxes).map(cb => cb.value);
+            selectedModuleCount.textContent = selectedAdaptationModules.length;
+        }
+        
+        // Update stage descriptions based on uplift mode
+        function updateStageDescriptions(mode) {
+            const stageBlocks = document.querySelectorAll('.stage-block');
+            
+            stageBlocks.forEach(block => {
+                const summaryElement = block.querySelector('.summary');
+                const titleElement = block.querySelector('.stage-title');
+                if (!summaryElement) return;
+                
+                const stageId = block.id;
+                switch (stageId) {
+                    case 'baseline_tests':
+                        if (mode === 'adaptation_pod') {
+                            summaryElement.textContent = 'Waiting to run baseline tests for adaptation pod modules...';
+                        } else {
+                            summaryElement.textContent = 'Waiting to run baseline tests on production environment (JDK 8)...';
+                        }
+                        break;
+                        
+                    case 'uplifting_essvt':
+                        if (mode === 'adaptation_pod') {
+                            titleElement.textContent = 'Stage 2: Uplifting Adaptation Pod Modules';
+                            summaryElement.textContent = 'Waiting to uplift Python code in selected adaptation pod modules...';
+                        } else {
+                            titleElement.textContent = 'Stage 2: Uplifting ESSVT Test Code';
+                            summaryElement.textContent = 'Waiting to uplift ESSVT test code to JDK 17...';
+                        }
+                        break;
+                        
+                    case 'essvt_uplifted_tests':
+                        if (mode === 'adaptation_pod') {
+                            titleElement.textContent = 'Stage 3: Adaptation Pod Validation';
+                            summaryElement.textContent = 'Waiting to validate uplifted adaptation pod modules...';
+                        } else {
+                            titleElement.textContent = 'Stage 3: ESSVT Uplifted Tests';
+                            summaryElement.textContent = 'Waiting to run uplifted ESSVT tests against original source code...';
+                        }
+                        break;
+                        
+                    case 'uplifting_source':
+                        if (mode === 'adaptation_pod') {
+                            titleElement.textContent = 'Stage 4: Uplifting Python Source Code';
+                            summaryElement.textContent = 'Waiting to uplift additional Python source code...';
+                        } else {
+                            titleElement.textContent = 'Stage 4: Uplifting Source Code';
+                            summaryElement.textContent = 'Waiting to uplift source code to JDK 17...';
+                        }
+                        break;
+                        
+                    case 'final_tests':
+                        if (mode === 'adaptation_pod') {
+                            titleElement.textContent = 'Stage 5: Final Adaptation Pod Tests';
+                            summaryElement.textContent = 'Waiting to run final tests with uplifted adaptation pod modules...';
+                        } else {
+                            titleElement.textContent = 'Stage 5: Final Tests';
+                            summaryElement.textContent = 'Waiting to run final tests with both uplifted ESSVT and uplifted source code...';
+                        }
+                        break;
+                }
+            });
+        }
 
         // LLM Changes Summary Component State
         let llmChanges = [];
@@ -2270,66 +2494,7 @@
             resetButton.disabled = false;
         });
 
-        // Preview prompt button click
-        document.getElementById('previewPromptBtn').addEventListener('click', async function() {
-            const modal = document.getElementById('promptModal');
-            modal.style.display = 'block';
-            
-            // Get current form values
-            const codeTextarea = document.querySelector('textarea[placeholder*="Java code"]');
-            const targetJdkSelect = document.querySelector('select'); // Assuming you have a JDK select
-            
-            const currentCode = codeTextarea ? codeTextarea.value : '// No code entered yet';
-            const currentJdk = targetJdkSelect ? targetJdkSelect.value : '17';
-            
-            try {
-                const response = await fetch('/api/preview-prompt', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        code: currentCode,
-                        findings: 'Sample modernizer findings',
-                        target_jdk: currentJdk
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update statistics
-                    document.getElementById('promptLength').textContent = data.prompt_length.toLocaleString();
-                    document.getElementById('ragContextLength').textContent = data.rag_context_length.toLocaleString();
-                    document.getElementById('selectedLibrariesCount').textContent = data.selected_libraries ? data.selected_libraries.length : 0;
-                    document.getElementById('targetJdk').textContent = data.target_jdk;
-                    
-                    // Update RAG context preview
-                    document.getElementById('ragContextPreview').textContent = data.rag_context || 'No RAG context retrieved';
-                    
-                    // Update full prompt preview
-                    document.getElementById('fullPromptPreview').textContent = data.prompt;
-                } else {
-                    document.getElementById('ragContextPreview').textContent = 'Error: ' + data.error;
-                    document.getElementById('fullPromptPreview').textContent = 'Error: ' + data.error;
-                }
-            } catch (error) {
-                document.getElementById('ragContextPreview').textContent = 'Error: ' + error.message;
-                document.getElementById('fullPromptPreview').textContent = 'Error: ' + error.message;
-            }
-        });
 
-        // Close modal functionality
-        document.querySelector('.close').addEventListener('click', function() {
-            document.getElementById('promptModal').style.display = 'none';
-        });
-
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('promptModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
 
         // Initialize the UI
         updateButtonState('IDLE');
