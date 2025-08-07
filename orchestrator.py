@@ -1348,7 +1348,7 @@ def get_rag_context(query, selected_libraries=None):
 @app.get("/.well-known/appspecific/com.chrome.devtools.json")
 async def chrome_devtools():
     """Handle Chrome DevTools request (prevents 404 in logs)"""
-    return JSONResponse(content={}, status_code=404)
+    return JSONResponse(content={}, status_code=200)
 
 # FastAPI routes
 @app.get("/", response_class=HTMLResponse)
