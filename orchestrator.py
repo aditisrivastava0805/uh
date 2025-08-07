@@ -332,6 +332,18 @@ def uplift_repository(repo_path, target_jdk):
                 with open(java_file, 'w') as f:
                     f.write(updated_code)
                 
+                # Send LLM change event to frontend
+                llm_change_data = {
+                    "title": f"Uplifted {os.path.basename(java_file)}",
+                    "description": f"Successfully modernized Java file to JDK {target_jdk}",
+                    "type": "success",
+                    "file": java_file,
+                    "stage": stage_id,
+                    "details": change_summary,
+                    "timestamp": datetime.datetime.now().isoformat()
+                }
+                send_llm_change_event(llm_change_data)
+                
                 # Save change summary to our uplift summary
                 uplift_summary.append(f"\nLLM Change Summary:")
                 uplift_summary.append(change_summary)
@@ -347,11 +359,35 @@ def uplift_repository(repo_path, target_jdk):
                 uplift_summary.append(f"\n❌ {error_msg}")
                 send_event(stage_id, "log", f"❌ {error_msg}")
                 
+                # Send LLM change event for error
+                llm_change_data = {
+                    "title": f"Failed to uplift {os.path.basename(java_file)}",
+                    "description": f"Failed to modernize Java file to JDK {target_jdk}",
+                    "type": "error",
+                    "file": java_file,
+                    "stage": stage_id,
+                    "details": error_msg,
+                    "timestamp": datetime.datetime.now().isoformat()
+                }
+                send_llm_change_event(llm_change_data)
+                
         except Exception as e:
             error_msg = f"Error processing {java_file}: {e}"
             print(error_msg)
             uplift_summary.append(f"\n❌ {error_msg}")
             send_event(stage_id, "log", f"❌ {error_msg}")
+            
+            # Send LLM change event for exception
+            llm_change_data = {
+                "title": f"Error processing {os.path.basename(java_file)}",
+                "description": f"Exception occurred while processing file",
+                "type": "error",
+                "file": java_file,
+                "stage": stage_id,
+                "details": error_msg,
+                "timestamp": datetime.datetime.now().isoformat()
+            }
+            send_llm_change_event(llm_change_data)
     
     result_msg = f"\nUplift completed: {success_count}/{total_files} files successfully uplifted"
     print(result_msg)
@@ -450,6 +486,17 @@ def send_event(stage, event_type, payload):
         "stage": stage,
         "type": event_type,
         "payload": payload
+    }
+    event_queue.put(event)
+    # Force a small delay to ensure events are processed in order
+    time.sleep(0.05)
+
+def send_llm_change_event(change_data):
+    """Send an LLM change event to the frontend."""
+    event = {
+        "stage": "llm_changes",
+        "type": "llm_change",
+        "payload": change_data
     }
     event_queue.put(event)
     # Force a small delay to ensure events are processed in order
