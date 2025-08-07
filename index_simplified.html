@@ -414,37 +414,7 @@
             margin-top: 15px;
         }
 
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
 
-        .module-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .module-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .module-item.selected {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .module-item input[type="checkbox"] {
-            margin: 0;
-        }
 
         .python-version-info {
             background-color: #e8f4fd;
@@ -507,8 +477,12 @@
                             <p style="color: #666; margin-bottom: 10px;">
                                 Select which adaptation pod modules to modernize:
                             </p>
-                            <div class="module-grid" id="moduleGrid">
+                            <select id="moduleSelect" multiple style="height: 200px; width: 100%;">
                                 <!-- Modules will be populated dynamically -->
+                            </select>
+                            <div style="margin-top: 10px;">
+                                <button type="button" id="selectAllModulesBtn" class="btn btn-secondary" style="margin-right: 10px;">Select All</button>
+                                <button type="button" id="clearAllModulesBtn" class="btn btn-secondary">Clear All</button>
                             </div>
                         </div>
                     </div>
@@ -656,6 +630,10 @@
             // Library selection buttons
             document.getElementById('selectAllBtn').addEventListener('click', selectAllLibraries);
             document.getElementById('clearAllBtn').addEventListener('click', clearAllLibraries);
+            
+            // Module selection buttons
+            document.getElementById('selectAllModulesBtn').addEventListener('click', selectAllModules);
+            document.getElementById('clearAllModulesBtn').addEventListener('click', clearAllModules);
         }
 
         function loadLibraries() {
@@ -694,17 +672,14 @@
         }
 
         function populateModules() {
-            const moduleGrid = document.getElementById('moduleGrid');
-            moduleGrid.innerHTML = '';
+            const moduleSelect = document.getElementById('moduleSelect');
+            moduleSelect.innerHTML = '';
 
             adaptationPodModules.forEach(module => {
-                const moduleItem = document.createElement('div');
-                moduleItem.className = 'module-item';
-                moduleItem.innerHTML = `
-                    <input type="checkbox" id="mod_${module}" value="${module}">
-                    <label for="mod_${module}">${module}</label>
-                `;
-                moduleGrid.appendChild(moduleItem);
+                const option = document.createElement('option');
+                option.value = module;
+                option.textContent = module;
+                moduleSelect.appendChild(option);
             });
         }
 
@@ -727,9 +702,23 @@
             return Array.from(checkboxes).map(cb => cb.value);
         }
 
+        function selectAllModules() {
+            const moduleSelect = document.getElementById('moduleSelect');
+            for (let i = 0; i < moduleSelect.options.length; i++) {
+                moduleSelect.options[i].selected = true;
+            }
+        }
+
+        function clearAllModules() {
+            const moduleSelect = document.getElementById('moduleSelect');
+            for (let i = 0; i < moduleSelect.options.length; i++) {
+                moduleSelect.options[i].selected = false;
+            }
+        }
+
         function getSelectedModules() {
-            const checkboxes = document.querySelectorAll('#moduleGrid input[type="checkbox"]:checked');
-            return Array.from(checkboxes).map(cb => cb.value);
+            const moduleSelect = document.getElementById('moduleSelect');
+            return Array.from(moduleSelect.selectedOptions).map(option => option.value);
         }
 
         function startModernization() {
