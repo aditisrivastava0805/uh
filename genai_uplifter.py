@@ -112,9 +112,6 @@ def get_rag_context(java_code, modernizer_findings, target_jdk_version, selected
             
             return "\n".join(context_parts)
         else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
             return "No specific RAG guidance found for this modernization scenario."
             
     except Exception as e:
@@ -187,9 +184,6 @@ def analyze_with_modernizer(java_file_path, target_jdk_version):
             
             return "Modernizer found no violations." if not violations else "Modernizer found the following issues:\n" + "\n".join(violations)
         else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
             # Try to extract errors from Maven output
             modernizer_errors = []
             for line in stdout.splitlines():
@@ -205,9 +199,6 @@ def analyze_with_modernizer(java_file_path, target_jdk_version):
             elif "No violations found" in stdout:
                 return "Modernizer found no violations."
             else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                 return "Modernizer report not found. Check if Modernizer ran correctly."
     except Exception as e:
         return f"Error during Modernizer analysis: {e}"
@@ -260,9 +251,6 @@ Use this context to understand Ericsson-specific patterns and requirements when 
 Follow any specific migration patterns or best practices mentioned in the context.
 """
     else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
         context_section = """
 Note: No Ericsson-specific context was retrieved. Proceed with standard modernization patterns.
 """
@@ -273,9 +261,6 @@ Note: No Ericsson-specific context was retrieved. Proceed with standard moderniz
     elif file_type == 'python':
         prompt = create_python_prompt(code, analysis_findings, target_version, context_section)
     else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
         prompt = create_generic_prompt(code, analysis_findings, target_version, file_type, context_section)
     
     try:
@@ -294,18 +279,12 @@ Note: No Ericsson-specific context was retrieved. Proceed with standard moderniz
         response = requests.post(LLM_API_URL, headers=headers, json=payload, verify=False)
         
         if response.status_code == 200:
-            print(f"✅ LLM API response received: {response.status_code}")
-            print(f"Response keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-            print(f"Response content: {result}" if len(str(result)) < 500 else f"Response too long ({len(str(result))} chars)")
             result = response.json()
             if 'choices' in result and len(result['choices']) > 0:
                 # Handle both message format and direct response format
                 if 'message' in result['choices'][0]:
                     llm_response = result['choices'][0]['message']['content']
                 else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                     llm_response = result['choices'][0].get('text', '')
                 
                 # Parse the response
@@ -315,21 +294,12 @@ Note: No Ericsson-specific context was retrieved. Proceed with standard moderniz
                 if updated_code:
                     return updated_code, change_summary
                 else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                     print("❌ Failed to extract updated code from LLM response")
                     return None, "Failed to extract updated code from LLM response"
             else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                 print("❌ No choices in LLM response")
                 return None, "No choices in LLM response"
         else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
             print(f"❌ LLM API error: {response.status_code} - {response.text}")
             # Try to parse error details
             try:
@@ -344,7 +314,7 @@ Note: No Ericsson-specific context was retrieved. Proceed with standard moderniz
     except Exception as e:
         print(f"❌ Error calling LLM API: {e}")
         # Return a fallback response for testing purposes
-        if True:
+        if "LLM_API_TOKEN" not in str(e) and "401" not in str(e):
             print("⚠️  Using fallback response for testing")
             fallback_response = f"""
 <change_summary>
@@ -563,9 +533,6 @@ def extract_change_summary(response):
             start_idx += len(start_marker)
             return response[start_idx:end_idx].strip()
         else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
             return "Change summary not found in response"
     except Exception as e:
         return f"Error extracting change summary: {e}"
@@ -623,9 +590,6 @@ Use this context to understand Ericsson-specific patterns and requirements when 
 Follow any specific migration patterns or best practices mentioned in the context.
 """
     else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
         context_section = """
 Note: No Ericsson-specific context was retrieved. Proceed with standard Java modernization patterns.
 """
@@ -747,17 +711,11 @@ Original Java code:
         if code_match:
             updated_code = code_match.group(1).strip()
         else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
             # Try alternative code block formats
             code_block_match = re.search(r"```java\n(.*?)\n```", response_text, re.DOTALL)
             if code_block_match:
                 updated_code = code_block_match.group(1).strip()
             else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                 # Last resort cleanup
                 cleaned_response = re.sub(r"<change_summary>.*?</change_summary>", "", response_text, flags=re.DOTALL).strip()
                 cleaned_response = re.sub(r"<updated_code>.*?</updated_code>", "", cleaned_response, flags=re.DOTALL).strip()
@@ -765,9 +723,6 @@ Original Java code:
                 if "```java" in cleaned_response:
                     updated_code = cleaned_response.split("```java", 1)[-1].split("```", 1)[0].strip()
                 else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                     updated_code = None
         
         return updated_code, change_summary
@@ -790,9 +745,6 @@ def display_libraries_cli():
     if isinstance(available_libraries, dict) and "high_priority" in available_libraries:
         high_priority_libs = available_libraries["high_priority"]
     else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
         # Fallback to hardcoded proven libraries
         high_priority_libs = [
             "EN/LZN 741 0077 R32A",   # Charging Control Node (CCN) 6.17.0
@@ -837,9 +789,6 @@ def display_libraries_cli():
                     print(f"Selected {len(selected)} libraries for RAG context.")
                     return selected
                 else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                     print("No valid libraries selected.")
                     continue
             
@@ -856,9 +805,6 @@ def display_libraries_cli():
                 print("Skipping RAG context - using LLM only.")
                 return []
             else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
                 print("Invalid choice. Please try again.")
                 
         except ValueError:
@@ -902,9 +848,6 @@ def run_cli_uplift():
         print("\n=== Library Selection ===")
         selected_libraries = display_libraries_cli()
     else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
         print("⚠️  RAG API not available - proceeding with LLM-only modernization")
     
     print(f"\n=== Processing {java_file} for JDK {target_jdk} ===")
@@ -946,9 +889,6 @@ def run_cli_uplift():
             
             return True
         else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
             print(f"\nError: Failed to get LLM suggestions")
             return False
             
@@ -965,9 +905,6 @@ if __name__ == "__main__":
         success = run_cli_uplift()
         sys.exit(0 if success else 1)
     else:
-                print(f"❌ Response does not contain choices array")
-                print(f"Available keys: {list(result.keys()) if isinstance(result, dict) else "Not a dict"}")
-                print(f"Full response: {result}")
         print("JDK Uplift Tool")
         print("Usage: python genai_uplifter.py --cli")
         print("This will run the uplift process in interactive CLI mode.")
