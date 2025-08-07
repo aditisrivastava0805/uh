@@ -335,7 +335,7 @@ def modernization_process():
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     """Serve the main HTML page."""
-    with open("index.html", "r", encoding="utf-8") as f:
+    with open("index_simplified.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
 @app.get("/favicon.ico")
