@@ -1,0 +1,30 @@
+{
+     "wait_to_start_secs": 30,
+     "pod": "air",
+     "file_newer_than_min": 6,
+     "max_processes": 4,
+     "dir_lookup":
+     {
+        "var/opt/fds/statistics/":
+        {
+            "search_keyword_for_file": ["AirIp-*.stat", "AUV-AirMapServerIf*.stat", "FSC-AccountFinderClientIf*.stat", "FSC-AirXmlRpc*.stat", "FSC-BatchFileInterface*.stat", "AUV-RpcAccountManagementClientIf_*.stat"],
+            "splunk_backup_dir": "/var/log/splunk/cEC/AIR/"
+        },
+        "var/lib/bcd/data/statistics/":
+        {
+            "search_keyword_for_file": ["Bcd_Stat_Get_Journal*.csv", "Bcd_Stat_Get_Entity*.csv", "Bcd_Stat_Put_Entity*.csv", "Bcd_Stat_Delete_Entity*.csv", "Bcd_Stat_Get_Reference_Count*.csv", "Bcd_Stat_Put_Reference_Count*.csv", "Bcd_Stat_Delete_Reference_Count*.csv"],
+            "splunk_backup_dir": "/var/log/splunk/cEC/AIR/"
+        }
+     },
+     "whitelist_pod_enable": "false",
+     "whitelist_pods": [],
+     "blacklist_pods": [],
+     "splunk": {
+        "splunk_user_group": "adaptation",
+        "splunk_container": "sftp"
+     },
+     "sftp":{
+        "user": "adaptation",
+        "password": "adaptation"
+     }
+}

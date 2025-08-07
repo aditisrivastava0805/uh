@@ -1,0 +1,28 @@
+{
+  "CPM_Lookup_Dns_Traffic_Report": {
+  "kpi_total": "cpm_lookup_msisdn_dns_requests_total",
+  "kpi_error": "cpm_lookup_msisdn_dns_requests_failed_total",
+  "kpi": "UAF_CPM_LOOKUP_DNS_REQUEST_SUCCESSFUL_RATE"
+  },
+  "CPM_Provision_Dns_Traffic_Report": {
+  "kpi_total": "cpm_provision_msisdn_dns_requests_total",
+  "kpi_error": "cpm_provision_msisdn_dns_requests_failed_total",
+  "kpi": "UAF_CPM_PROVISION_DNS_REQUEST_SUCCESSFUL_RATE"
+  },
+  "CPM_Update_Dns_Traffic_Report": {
+  "kpi_total": "cpm_update_msisdn_dns_requests_total",
+  "kpi_error": "cpm_update_msisdn_dns_requests_failed_total",
+  "kpi": "UAF_CPM_UPDATE_DNS_REQUEST_SUCCESSFUL_RATE"
+  },
+  "CPM_Delete_Dns_Traffic_Report": {
+  "kpi_total": "cpm_delete_msisdn_dns_requests_total",
+  "kpi_error": "cpm_delete_msisdn_dns_requests_failed_total",
+  "kpi": "UAF_CPM_DELETE_DNS_REQUEST_SUCCESSFUL_RATE"
+  },
+  "CPM_Update_Dns_Failed_Traffic_Report": {
+  "kpi_total": "cpm_update_msisdn_dns_requests_total",
+  "kpi_error": "cpm_update_msisdn_dns_requests_success_total",
+  "kpi": "UAF_CPM_UPDATE_DNS_REQUEST_FAILURE_RATE"
+  }
+}
+

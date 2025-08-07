@@ -1,0 +1,28 @@
+{
+  "WAIT_TO_START_SECS": 20,
+  "CONTAINER_PATTERN": "eric-pm-bulk-reporter",
+  "POD_PATTERN": ".*-pm-bulk.*",
+  "NAMESPACE_PATTERN": "cmd:kubectl get pod --all-namespaces | grep pm-bulk | grep -E \"caf1-system|caf2-system|minipolcaf|minirivcaf|miniaurcaf|aurcafgp2|polcafgp2|ttncafgp1|syocafgp1|chacafgp1|rivcafgp2\" | awk '{print $1}'",
+  "SOURCE_FOLDER": "PerformanceManagementReportFiles",
+  "FILE_NEWER_THAN_MINS": 5,
+  "DESTINATION_FOLDER": "/home/tpimcaf/CAF",
+  "DESTINATION_FILENAME": "{namespace}_{filename}",
+  "SFTP": {
+    "USERNAME": "bro",
+    "PASSWORD": "bro",
+    "HOSTNAME_PATTERN": "cmd:kubectl get svc --all-namespaces | grep 'eric-pm-bulk-reporter ' | egrep -E 'aurcafgp2|polcafgp2|ttncafgp1|syocafgp1|chacafgp1|rivcafgp2|miniaurcaf|minipolcaf|minirivcaf|caf1-system|caf2-system|caf3-system|caf4-system' | awk '{print $5}'"
+  },
+  "FORWARD_STRUCTS": [
+    {
+      "TYPE": "POD",
+      "CONTAINER_PATTERN": "sftp",
+      "POD_PATTERN": ".*-splunk.*",
+      "NAMESPACE_PATTERN": "",
+      "HOSTNAME": "cmd:kubectl get service | grep splunkfwd | awk 'FNR == 1 {print $4}'",
+      "USERNAME": "adaptation",
+      "PASSWORD": "adaptation",
+      "DESTINATION_FOLDER": "/var/log/splunk/CAF",
+      "FILE_RETENTION_DAYS": 5
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "wait_to_start_secs": 30,
+  "namespace": "csa",
+  "pod": "pm-bulk",
+  "dir_lookup": "PerformanceManagementReportFiles/",
+  "perf_data_files_local_dir": "/home/tpimcsa/CSA/",
+  "execution_period_mins": 15,
+  "kafka_message_template": {
+    "category": "CORE - IN",
+    "platform": "ERICSSON_CSA",
+    "source_owner": "Tier2_CC",
+    "@table": [
+      "kpi_name",
+      "kpi_value",
+      "kpi_result"
+    ],
+    "ref_id": "{random}",
+    "kpi_last_updated_date": null,
+    "kpi_source": null,
+    "config_item": null,
+    "kpi_info": null,
+    "src_modified_dt": null,
+    "local_modified_dt": null
+  }
+}

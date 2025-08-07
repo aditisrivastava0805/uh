@@ -1,0 +1,78 @@
+{
+  "Diameter_Total_Traffic_RO_Requests":{
+  "kpi_total": "cha_access_rating_diameter_requests_total",
+  "kpi_error": "cha_access_rating_diameter_requests_errors_total",
+  "filters": "Ro-CCR-Initial|Ro-CCR-Update|Ro-CCR-Termination",
+  "code": "4010|4011|4012|5002|5030",
+  "kpi": "RO_SUCCESSFUL_RATE"
+  },
+  "Diameter_Total_Traffic_GY_Requests":{
+  "kpi_total": "cha_access_rating_diameter_requests_total",
+  "kpi_error": "cha_access_rating_diameter_requests_errors_total",
+  "filters": "Gy-CCR-Initial|Gy-CCR-Update|Gy-CCR-Termination",
+  "code": "4010|4011|4012|5002|5030",
+  "kpi": "GY_SUCCESSFUL_RATE"
+  },
+  "Diameter_Total_Traffic_SCAPv2_Session_Requests":{
+  "kpi_total": "cha_access_rating_diameter_requests_total",
+  "kpi_error": "cha_access_rating_diameter_requests_errors_total",
+  "filters": "SCAPv2-CCR-Initial|SCAPv2-CCR-Update|SCAPv2-CCR-Termination",
+  "code": "4010|4011|4012|5002|5030",
+  "kpi": "SCAPV2_SESSIONS_SUCCESSFUL_RATE"
+  },
+  "Diameter_Total_Traffic_SCAPv2_Events_Requests":{
+  "kpi_total": "cha_access_rating_diameter_requests_total",
+  "kpi_error": "cha_access_rating_diameter_requests_errors_total",
+  "filters": "SCAPv2-Refund|SCAPv2-Direct-Debit|SCAPv2-DirectDebit-CIR",
+  "code": "4010|4011|4012|5002|5030",
+  "kpi": "SCAPV2_EVENTS_SUCCESSFUL_RATE"
+  },
+  "Sy_Traffic_Report":{
+  "kpi_total": "cha_access_policy_sy_diameter_requests_total",
+  "kpi_error": "cha_access_policy_sy_diameter_requests_errors_total",
+  "code": "4010|4011|4012|5002|5030",
+  "kpi": "SY_SUCCESSFUL_RATE"
+  },
+  "Nchf_Converged_Charging_Traffic_Report":{
+  "kpi_total": "cha_access_nchf_charging_http_requests_total",
+  "kpi_error": "cha_access_nchf_charging_http_requests_errors_total",
+  "kpi": "NCHF_CC_SUCCESSFUL_RATE"
+  },
+  "Nchf_Spending_Limit_Traffic_Report":{
+  "kpi_total": "cha_access_nchf_policy_http_requests_total",
+  "kpi_error": "cha_access_nchf_policy_http_requests_errors_total",
+  "kpi": "NCHF_SLC_SUCCESSFUL_RATE"
+  },
+  "NRF_Traffic_Report": {
+  "kpi_total": "cha_nfreg_nrf_registration_http_requests_total",
+  "kpi_error": "cha_nfreg_nrf_registration_http_requests_errors_total",
+  "kpi": "NRF_SUCCESSFUL_RATE"
+  },
+  "External_Rating_Diameter_sbi": {
+  "kpi_total": "cha_access_external_rating_diameter_requests_total",
+  "kpi_error": "cha_access_external_rating_diameter_requests_errors_total",
+  "filters": "SBI-CIP-RAR|SBI_Final_CIR|SBI_Initial_CIR|SBI_Update_CIR",
+  "code": "5002|5030",
+  "kpi": "EXTERNAL_RATING_DIAMETER_SBI_TRAFFIC_SUCCESSFUL_RATE"
+  },
+  "ExternalPolicySBI_Traffic_Report":{
+  "kpi_total": "cha_access_external_policy_diameter_requests_total",
+  "kpi_error": "cha_access_external_policy_diameter_requests_errors_total",
+  "filters": "SBI-Sy-SLR|SBI-Sy-SNR|SBI-Sy-STR",
+  "kpi": "EXTERNAL_POLICY_SBI_TRAFFIC_SUCCESSFUL_RATE"
+  },
+  "External_Rating_Diameter_Ro_Gy_SCAPv2_Traffic_Report":{
+  "kpi_total": "cha_access_external_rating_diameter_requests_total",
+  "kpi_error": "cha_access_external_rating_diameter_requests_errors_total",
+  "filters": "CIP-RAR|Final_CIR|Initial_CIR|SCAPv2-DirectDebit-CIR|SCAPv2-Final-Interrogation-CIR-Request|SCAPv2-First-Interrogation-CIR-Request|Update_CIR",
+  "code": "4010|4011|4012|5002|5030",
+  "kpi": "EXTERNAL_RATING_DIAMETER_RO_GY_SCAPv2_TRAFFIC_SUCCESSFUL_RATE"
+  },
+  "External_Policy_Diameter_Sy_Traffic_Report":{
+  "kpi_total": "cha_access_external_policy_diameter_requests_total",
+  "kpi_error": "cha_access_external_policy_diameter_requests_errors_total",
+  "filters": "Sy-SLR|Sy-SNR|Sy-STR",
+  "kpi": "EXTERNAL_POLICY_DIAMETER_SY_TRAFFIC_SUCCESSFUL_RATE"
+  }
+}
+

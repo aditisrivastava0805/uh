@@ -1,0 +1,59 @@
+{
+    "local": {
+        "files_retention_days": 10,
+        "paths": [
+                    "/mount/volumes/script/KAFKA_SDP_GEORED/archive/",
+                    "/mount/volumes/script/KAFKA_SDP_GEORED/log/",
+                    "/mount/volumes/script/KAFKA_SDP_POSTPAID/archive/",
+                    "/mount/volumes/script/KAFKA_SDP_POSTPAID/log/",
+                    "/mount/volumes/script/KAFKA_SDP_PREPAID/archive/",
+                    "/mount/volumes/script/KAFKA_SDP_PREPAID/log/",
+                    "/mount/volumes/script/KAFKA_AIR_SUPPORT_WITH_PYTHON3/archive/",
+                    "/mount/volumes/script/KAFKA_AIR_SUPPORT_WITH_PYTHON3/log/",
+                    "/mount/volumes/script/KAFKA_SDP/archive/",
+                    "/mount/volumes/script/KAFKA_SDP/log/",
+                    "/mount/volumes/script/KAFKA_AF/log/",
+                    "/mount/volumes/script/KAFKA_AF/archive/",
+                    "/mount/volumes/script/KAFKA_AIR/archive/",
+                    "/mount/volumes/script/KAFKA_AIR/log/",
+                    "/mount/volumes/script/KAFKA_CTA/archive/",
+                    "/mount/volumes/script/KAFKA_CTA/log/",
+                    "/mount/volumes/script/KAFKA_PLATFORM/archive/",
+                    "/mount/volumes/script/KAFKA_PLATFORM/log/",
+                    "/mount/volumes/script/KAFKA_CAF/archive/",
+                    "/mount/volumes/script/KAFKA_CAF/log/",
+                    "/mount/volumes/script/KAFKA_CSA/archive/",
+                    "/mount/volumes/script/KAFKA_CSA/log/",
+                    "/mount/volumes/script/KAFKA_CAF/log/",
+                    "/mount/volumes/script/KAFKA_CAF/archive/",
+                    "/mount/volumes/script/KAFKA_UAF/log/",
+                    "/mount/volumes/script/KAFKA_UAF/archive/",
+                    "/mount/volumes/script/SDP_STAT/log/",
+                    "/mount/volumes/script/AIR_STAT/log/",
+                    "/mount/volumes/script/AF_STAT/log/",
+                    "/mount/volumes/script/GEO_RED_STAT/log/"
+        ]
+    },
+    "splunk": {
+        "files_retention_days": 10,
+        "container": "splunkforwarder",
+        "paths": [
+                    "/var/log/splunk/cEC/AIR/",
+                    "/var/log/splunk/cEC/SDP/",
+                    "/var/log/splunk/cEC/SDP_TRAFFIC_HANDLER/",
+                    "/var/log/splunk/cEC/AF/",
+                    "/var/log/splunk/cCTA/",
+                    "/var/log/splunk/cCAF/",
+                    "/var/log/splunk/cCSA/"
+                 ]
+    },
+    "tpim": {
+        "files_retention_days": 30,
+        "paths": [
+                    "/home/tpimcta/CTA/",
+                    "/home/tpimcta/CCTA/",
+                    "/home/tpimcsa/CSA/",
+                    "/home/tpimcaf/CAF/"
+                 ]
+    }
+}

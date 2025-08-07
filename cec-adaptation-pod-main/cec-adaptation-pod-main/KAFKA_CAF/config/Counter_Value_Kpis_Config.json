@@ -1,0 +1,7 @@
+{
+  "cha_pod_cache_validation_report":{
+    "counter": "cha_core_rating_session_akka_requests_errors_total",
+    "codes_to_consider": "2004|3307",
+    "kpi": "CHA_POD_CACHE_VALIDATION"
+  }
+}

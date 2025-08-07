@@ -1,0 +1,8 @@
+.env
+baseline_output/
+.venv/
+__pycache__/
+essvt_output/
+final_output/
+.DS_Store
+*.log

@@ -1,0 +1,25 @@
+{
+     "wait_to_start_secs": 60,
+     "pod": "af",
+     "file_newer_than_min": 6,
+     "max_processes": 2,
+     "dir_lookup":
+     {
+        "var/opt/af/named/":
+        {
+            "search_keyword_for_file": ["AFRouter-*.stat"],
+            "splunk_backup_dir": "/var/log/splunk/cEC/AF/"
+        }
+     },
+     "whitelist_pod_enable": "false",
+     "whitelist_pods": [],
+     "blacklist_pods": [],
+     "splunk": {
+        "splunk_user_group": "adaptation",
+        "splunk_container": "sftp"
+     },
+     "sftp":{
+        "user": "adaptation",
+        "password": "adaptation"
+     }
+}

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "root": {
+    "level": "NOTSET",
+    "handlers": [
+      "rotating_file_handler"
+    ]
+  },
+  "handlers": {
+    "rotating_file_handler": {
+      "level": "INFO",
+      "formatter": "detail",
+      "class": "logging.handlers.TimedRotatingFileHandler",
+      "filename": "{app-path}/log/kafka.log",
+      "when": "midnight",
+      "backupCount": 2
+    }
+  },
+  "formatters": {
+    "detail": {
+      "format": "%(asctime)s - %(levelname)s - %(message)s"
+    }
+  }
+}

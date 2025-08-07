@@ -1,0 +1,38 @@
+image: ansible:2.13-infra
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  tags:
+   - production
+  script:
+    - tar czf adaptation_scripts.tgz --exclude="runner_files" --exclude="*.md" *
+  only:
+    - main
+  artifacts:
+    paths:
+    - adaptation_scripts.tgz
+    expire_in: 30 days
+
+deploy_to_pod:
+  stage: deploy
+  tags:
+   - production
+  script:
+    - pwd
+    - id
+    - chmod 600 $production_cicd_pipeline_key_file
+    - ansible -i runner_files/inventory $ACCESS_SERVER -m copy -a 'src=adaptation_scripts.tgz dest=/tmp/' --private-key=$production_cicd_pipeline_key_file -b -v -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" 
+    - ansible-playbook -i runner_files/inventory runner_files/deploy_adaptation.yaml -l $ACCESS_SERVER --private-key=$production_cicd_pipeline_key_file -v
+    - ansible -i runner_files/inventory $ACCESS_SERVER -m file -a 'path=/tmp/adaptation_scripts.tgz state=absent' --private-key=$production_cicd_pipeline_key_file -b -v -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no'"
+  only:
+    - main
+  environment:
+    name: $ACCESS_SERVER
+  parallel:
+    matrix:
+      - ACCESS_SERVER: [CAF_POBSTGcCCDAS, CAF_RIcCCDAS, CAF_TIAcCCDAS01, CAF_SYcCCDAS01, CAF_CHcCCDAS01, CAF_POAcCCDAS01, CAF_RIcCCDAS01, CAF_AUcCCDAS01, POAcCCDAS, POBcCCDAS, TIAcCCDAS, TIBcCCDAS, SYcCCDAS, CHcCCDAS01, AUcCCDAS01, POcCCDAS01, RIcCCDAS01, CTA_POBSTGcCCDAS01, CTA_EC_POBSTGcCCDAS01, CTA_titan02, CTA_charlotte02, CTA_syosset02, CTA_riverside02, CTA_polaris02, CTA_aurora02, STG_CAF_AUcCCDAS01, STG_CAF_RIcCCDAS01]
+  when: manual

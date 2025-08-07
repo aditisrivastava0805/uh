@@ -1,0 +1,24 @@
+{
+  "WAIT_TO_START_SECS": 20,
+  "APPLICATION_NAME_PATTERN": "cmd:kubectl get pod --all-namespaces | grep pm-bulk | grep -E \"caf1-system|caf2-system|caf4-system|minipolcaf|minirivcaf|miniaurcaf|aurcafgp2|polcafgp2|ttncafgp1|syocafgp1|chacafgp1|rivcafgp2\" | awk '{print $1}'",
+  "NUMBER_OF_LAST_UPDATED_FILES": 5,
+  "SOURCE_FOLDER": "/home/tpimcsa/CSA",
+  "FORWARD_STRUCTS": [
+    {
+      "HOSTNAME": "10.190.223.43",
+      "USERNAME": "aimluser",
+      "PASSWORD": "aiml1234",
+      "DESTINATION_FOLDER": {
+        "minipolcaf": "/data/charging_stg/pol/csa/stats/",
+        "minirivcaf": "/data/charging_stg/riv/csa/stats/",
+        "miniaurcaf": "/data/charging_stg/aur/csa/stats/",
+        "aurcafgp2": "/data/charging_prod/aur/csa/stats/",
+        "polcafgp2": "/data/charging_prod/pol/csa/stats/",
+        "ttncafgp1": "/data/charging_prod/ttn/csa/stats/",
+        "syocafgp1": "/data/charging_prod/syo/csa/stats/",
+        "chacafgp1": "/data/charging_prod/cha/csa/stats/",
+        "rivcafgp2": "/data/charging_prod/riv/csa/stats/"
+      }
+    }
+  ]
+}

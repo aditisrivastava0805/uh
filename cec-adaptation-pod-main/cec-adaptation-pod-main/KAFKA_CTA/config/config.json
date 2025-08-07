@@ -1,0 +1,92 @@
+{
+  "wait_to_start_secs": 30,
+  "namespace": "kubectl get ns | grep -E 'polccta01|rivccta01|aurccta01|ttnccta01|syoccta01|chaccta01|stgpolccta01|polccta02|rivccta02|aurccta02|ttnccta02|syoccta02|chaccta02' | awk '{print $1}'",
+  "pod": "pm-bulk",
+  "dir_lookup": "PerformanceManagementReportFiles/",
+  "perf_data_files_local_dir": "/home/tpimcta/CCTA/",
+  "execution_period_mins": 15,
+  "dsc_credentials": {
+        "polccta01": {
+              "dsc_admin_ip": "10.247.46.34",
+              "dsc_admin_user": "CECCCTA00101",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "rivccta01": {
+              "dsc_admin_ip": "10.240.82.98",
+              "dsc_admin_user": "CECCCTA02101",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "aurccta01": {
+              "dsc_admin_ip": "10.236.9.130",
+              "dsc_admin_user": "CECCCTA03101",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "ttnccta01": {
+              "dsc_admin_ip": "10.247.159.82",
+              "dsc_admin_user": "CECCCTA01101",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "syoccta01": {
+              "dsc_admin_ip": "10.246.168.82",
+              "dsc_admin_user": "CECCCTA04101",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "chaccta01": {
+              "dsc_admin_ip": "10.246.215.130",
+              "dsc_admin_user": "CECCCTA05101",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "stgpolccta01": {
+              "dsc_admin_ip": "10.247.60.99",
+              "dsc_admin_user": "CECCCTA00099",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "ttnccta02": {
+              "dsc_admin_ip": "10.247.182.82",
+              "dsc_admin_user": "CECCCTA01201",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "chaccta02": {
+              "dsc_admin_ip": "10.246.215.146",
+              "dsc_admin_user": "CECCCTA05201",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "syoccta02": {
+              "dsc_admin_ip": "10.246.168.162",
+              "dsc_admin_user": "CECCCTA04201",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "aurccta02": {
+              "dsc_admin_ip": "10.236.9.146",
+              "dsc_admin_user": "CECCCTA03201",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "rivccta02": {
+              "dsc_admin_ip": "10.240.82.114",
+              "dsc_admin_user": "CECCCTA02201",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        },
+        "polccta02": {
+              "dsc_admin_ip": "10.247.60.114",
+              "dsc_admin_user": "CECCCTA00201",
+              "dsc_admin_pass": "z1x1c1..Z1X1C1"
+        }
+  },
+  "kafka_message_template": {
+    "category": "CORE - IN",
+    "platform": "ERICSSON_CTA",
+    "source_owner": "Tier2_CC",
+    "@table": [
+      "kpi_name",
+      "kpi_value",
+      "kpi_result"
+    ],
+    "ref_id": "{random}",
+    "kpi_last_updated_date": null,
+    "kpi_source": null,
+    "config_item": null,
+    "kpi_info": null,
+    "src_modified_dt": null,
+    "local_modified_dt": null
+  }
+}

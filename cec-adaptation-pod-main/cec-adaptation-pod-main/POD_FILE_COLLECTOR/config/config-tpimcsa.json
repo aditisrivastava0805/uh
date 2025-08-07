@@ -1,0 +1,28 @@
+{
+  "WAIT_TO_START_SECS": 20,
+  "CONTAINER_PATTERN": "eric-pm-bulk-reporter",
+  "POD_PATTERN": ".*-pm-bulk.*",
+  "NAMESPACE_PATTERN": "csa",
+  "SOURCE_FOLDER": "PerformanceManagementReportFiles",
+  "FILE_NEWER_THAN_MINS": 5,
+  "DESTINATION_FOLDER": "/home/tpimcsa/CSA",
+  "DESTINATION_FILENAME": "{hostname}_{filename}",
+  "SFTP": {
+    "USERNAME": "scp-admin",
+    "PASSWORD": "z1x1c1..Z1X1C1",
+    "HOSTNAME_PATTERN": "cmd:kubectl get svc --all-namespaces | grep 'eric-pm-bulk-reporter ' | grep 'csa ' | awk '{print $5}'"
+  },
+  "FORWARD_STRUCTS": [
+    {
+      "TYPE": "POD",
+      "CONTAINER_PATTERN": "sftp",
+      "POD_PATTERN": ".*-splunk.*",
+      "NAMESPACE_PATTERN": "",
+      "HOSTNAME": "cmd:kubectl get service | grep splunkfwd | awk 'FNR == 1 {print $4}'",
+      "USERNAME": "adaptation",
+      "PASSWORD": "adaptation",
+      "DESTINATION_FOLDER": "/var/log/splunk/CSA",
+      "FILE_RETENTION_DAYS": 5
+    }
+  ]
+}

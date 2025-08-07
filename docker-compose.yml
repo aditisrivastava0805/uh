@@ -1,0 +1,30 @@
+services:
+  production_env:
+    build:
+      context: .
+      dockerfile: dockerfiles/production.Dockerfile
+    volumes:
+      - ./repositories:/app
+    working_dir: /app
+    environment:
+      - JAVA_HOME=/usr/lib/jvm/java-1.8-openjdk
+    networks:
+      - jdk_uplift_network
+
+  uplift_env:
+    build:
+      context: .
+      dockerfile: dockerfiles/uplift.Dockerfile
+    volumes:
+      - ./repositories:/app
+      - ./.env:/app/.env:ro
+    working_dir: /app
+    environment:
+      - JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/.env
+    networks:
+      - jdk_uplift_network
+
+networks:
+  jdk_uplift_network:
+    driver: bridge 

@@ -1,0 +1,10 @@
+{
+    "NFS_STORAGE_EMM_CDR_TRANSFER": {
+        "path": "/mount/volumes/script/CDRS_TRANSFER/python_sftp_cdrs.log",
+        "kpi": "NFS_STORAGE_EMM_CDR_TRANSFER"
+    },
+    "NFS_STORAGE_CLEANUP": {
+        "path": "/mount/volumes/script/NFS_DISK_STATUS_CHECK/Adaptation_to_free_up.runlog",
+        "kpi": "NFS_STORAGE_CLEANUP"
+    }
+}

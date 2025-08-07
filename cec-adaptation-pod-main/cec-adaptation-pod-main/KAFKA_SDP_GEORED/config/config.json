@@ -1,0 +1,27 @@
+{
+  "wait_to_start_secs": 10,
+  "namespace": "cmd:kubectl get ns | grep -E 'chf-ec-apps|chf-apps' | awk '{print $1}'",
+  "pod": "sdp",
+  "pod_container": "sdp",
+  "max_processes": 3,
+  "whitelist_pod_enable": "false",
+  "whitelist_pods": [],
+  "blacklist_pods": [],
+  "kafka_message_template": {
+    "category": "CORE - IN",
+    "platform": "ERICSSON_SDP",
+    "source_owner": "Tier2_CC",
+    "@table": [
+      "kpi_name",
+      "kpi_value",
+      "kpi_result"
+    ],
+    "ref_id": "{random}",
+    "kpi_last_updated_date": null,
+    "kpi_source": null,
+    "config_item": null,
+    "kpi_info": null,
+    "src_modified_dt": null,
+    "local_modified_dt": null
+  }
+}

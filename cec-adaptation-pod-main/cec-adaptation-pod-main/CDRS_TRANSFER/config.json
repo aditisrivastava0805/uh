@@ -1,0 +1,75 @@
+{
+  "root_directory": "/home/nfs/",
+
+  "sftp_connections": {
+    "CHAD": {
+		"ttncafgp1": {
+            "primary_host":"10.137.239.14",
+            "secondary_host": "10.137.239.141"
+        },
+		"syocafgp1": {
+            "primary_host":"10.137.239.14",
+            "secondary_host": "10.137.239.141"
+        },
+		"chacafgp1": {
+            "primary_host":"10.137.239.14",
+            "secondary_host": "10.137.239.141"
+        },
+        "aurcafgp2": {
+            "primary_host":"10.152.8.14",
+            "secondary_host": "10.152.8.141"
+        },
+		"polcafgp2": {
+            "primary_host":"10.152.8.14",
+            "secondary_host": "10.152.8.141"
+        },
+		"rivcafgp2": {
+            "primary_host":"10.152.8.14",
+            "secondary_host": "10.152.8.141"
+        },
+      "port": 22,
+      "username": "SVC_CAF_EMM",
+      "password": "Mediation@123",
+      "file_types": [".CHAD", ".log", ".error", ".sum"],
+      "remote_directory_map": {
+        ".CHAD": "/var/opt/mediation/collection/CHD/CAF/BssfChargingCdrAsn1/",
+        ".log": "/var/opt/mediation/collection/CHAD/CHADLog/",
+        ".error": "/var/opt/mediation/collection/CHF/CAF/Error/",
+        ".sum": ""
+      }
+    },
+    "CHF": {
+	    "ttncafgp1": {
+            "primary_host":"10.137.239.6",
+            "secondary_host": "10.137.239.133"
+        },
+		"syocafgp1": {
+            "primary_host":"10.137.239.6",
+            "secondary_host": "10.137.239.133"
+        },
+		"chacafgp1": {
+            "primary_host":"10.137.239.6",
+            "secondary_host": "10.137.239.133"
+        },
+        "aurcafgp2": {
+            "primary_host":"10.152.8.6",
+            "secondary_host": "10.152.8.133"
+        },
+		"polcafgp2": {
+            "primary_host":"10.152.8.6",
+            "secondary_host": "10.152.8.133"
+        },
+		"rivcafgp2": {
+            "primary_host":"10.152.8.6",
+            "secondary_host": "10.152.8.133"
+        },
+      "port": 22,
+      "username": "SVC_CAF_EMM",
+      "password": "Mediation@123",
+      "file_types": [".CHF"],
+      "remote_directory_map": {
+        ".CHF": "/var/opt/mediation/collection/CHF/CAF/BssfChfCdrAsn1/"
+      }
+    }
+  }
+}

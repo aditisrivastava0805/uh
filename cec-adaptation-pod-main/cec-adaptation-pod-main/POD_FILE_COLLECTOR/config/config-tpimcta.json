@@ -1,0 +1,28 @@
+{
+  "WAIT_TO_START_SECS": 20,
+  "CONTAINER_PATTERN": "eric-pm-bulk-reporter",
+  "POD_PATTERN": ".*-pm-bulk.*",
+  "NAMESPACE_PATTERN": "cmd:kubectl get ns | grep -E 'polccta01|rivccta01|aurccta01|ttnccta01|syoccta01|chaccta01|stgpolccta01|polccta02|rivccta02|aurccta02|ttnccta02|syoccta02|chaccta02' | awk '{print $1}'",
+  "SOURCE_FOLDER": "PerformanceManagementReportFiles",
+  "FILE_NEWER_THAN_MINS": 5,
+  "DESTINATION_FOLDER": "/home/tpimcta/CCTA",
+  "DESTINATION_FILENAME": "{hostname}_{filename}",
+  "SFTP": {
+    "USERNAME": "sys-admin",
+    "PASSWORD": "q1w1e1..Q1W1E1",
+    "HOSTNAME_PATTERN": "cmd:kubectl get svc --all-namespaces | grep 'eric-pm-bulk-reporter ' | egrep -E 'polccta01|rivccta01|aurccta01|ttnccta01|syoccta01|chaccta01|stgpolccta01|polccta02|rivccta02|aurccta02|ttnccta02|syoccta02|chaccta02' | awk '{print $5}'"
+  },
+  "FORWARD_STRUCTS": [
+    {
+      "TYPE": "POD",
+      "CONTAINER_PATTERN": "sftp",
+      "POD_PATTERN": ".*-splunk.*",
+      "NAMESPACE_PATTERN": "",
+      "HOSTNAME": "cmd:kubectl get service | grep splunkfwd | awk 'FNR == 1 {print $4}'",
+      "USERNAME": "adaptation",
+      "PASSWORD": "adaptation",
+      "DESTINATION_FOLDER": "/var/log/splunk/CTA",
+      "FILE_RETENTION_DAYS": 5
+    }
+  ]
+}

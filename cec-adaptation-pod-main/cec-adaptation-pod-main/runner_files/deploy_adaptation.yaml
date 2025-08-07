@@ -1,0 +1,143 @@
+---
+- hosts: access_server_ec
+  gather_facts: no
+  become: true
+  become_method: sudo
+  become_user: "{{ kube_user }}"
+
+  tasks:
+  - name: get pod name
+    shell: bash -ilc 'kubectl get pods -n {{ namespace }} -o custom-columns=":metadata.name"' | grep adap
+    register: pod
+
+  - debug: var=pod
+
+  - name: push to /tmp on pod
+    shell: bash -ilc 'kubectl -c eric-adaptation cp /tmp/adaptation_scripts.tgz {{ namespace }}/{{ pod.stdout }}:/tmp/'
+
+  - name: changing permission for POD_FILE_COLLECTOR
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/POD_FILE_COLLECTOR/ -R'
+    ignore_errors: yes
+
+  - name: changing permission for af_main
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/af_main/ -R'
+    ignore_errors: yes
+
+  - name: changing permission for air_health_check
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/air_health_check/ -R'
+    ignore_errors: yes
+
+  - name: untar on pod
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- tar xzf /tmp/adaptation_scripts.tgz -C /mount/volumes/script/'
+
+  - name: set execution flag
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- find /mount/volumes/script/ -name "*.py" -exec chmod 755 {} \;'
+
+  - name: changing permission for AF_failover
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ec01afgeored:users /mount/volumes/script/AF_failover/ -R'
+    ignore_errors: yes
+  #- name: remove /tmp file on pod
+   # shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- \rm /tmp/adaptation_scripts.tgz'
+
+- hosts: access_server_caf
+  gather_facts: no
+  become: true
+  become_method: sudo
+  become_user: "{{ kube_user }}"
+
+  tasks:
+  - name: get pod name
+    shell: bash -ilc 'kubectl get pods -n {{ namespace }} -o custom-columns=":metadata.name"' | grep adap
+    register: pod
+
+  - debug: var=pod
+
+  - name: push to /tmp on pod
+    shell: bash -ilc 'kubectl -n {{ namespace }} -c eric-adaptation cp /tmp/adaptation_scripts.tgz {{ pod.stdout }}:/tmp/'
+
+  - name: changing permission for POD_FILE_COLLECTOR
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/POD_FILE_COLLECTOR/ -R'
+    ignore_errors: yes
+
+  - name: untar on pod
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- tar xzf /tmp/adaptation_scripts.tgz -C /mount/volumes/script/'
+
+  - name: set execution flag
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- find /mount/volumes/script/ -name "*.py" -exec chmod 755 {} \;'
+
+  - name: remove /tmp file on pod
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- \rm /tmp/adaptation_scripts.tgz'
+
+- hosts: access_server_cta
+  gather_facts: no
+  become: true
+  become_method: sudo
+  become_user: "{{ kube_user }}"
+
+  tasks:
+  - name: get pod name
+    shell: bash -ilc 'kubectl get pods -n {{ namespace }} -o custom-columns=":metadata.name"' | grep adap
+    register: pod
+
+  - debug: var=pod
+
+  - name: push to /tmp on pod
+    shell: bash -ilc 'kubectl -n {{ namespace }} -c eric-adaptation cp /tmp/adaptation_scripts.tgz {{ pod.stdout }}:/tmp/'
+
+  - name: changing permission for POD_FILE_COLLECTOR
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/POD_FILE_COLLECTOR/ -R'
+    ignore_errors: yes
+
+  - name: changing permission for af_main
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/af_main/ -R'
+    ignore_errors: yes
+
+  - name: changing permission for air_health_check
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/air_health_check/ -R'
+    ignore_errors: yes
+
+  - name: untar on pod
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- tar xzf /tmp/adaptation_scripts.tgz -C /mount/volumes/script/'
+
+  - name: set execution flag
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- find /mount/volumes/script/ -name "*.py" -exec chmod 755 {} \;'
+
+  - name: remove /tmp file on pod
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- \rm /tmp/adaptation_scripts.tgz'
+
+- hosts: access_server_cta02
+  gather_facts: no
+  become: true
+  become_method: sudo
+  become_user: "{{ kube_user }}"
+
+  tasks:
+  - name: get pod name
+    shell: bash -ilc 'kubectl get pods -n {{ namespace }} -o custom-columns=":metadata.name"' | grep adap
+    register: pod
+
+  - debug: var=pod
+
+  - name: push to /tmp on pod
+    shell: bash -ilc 'kubectl -n {{ namespace }} -c eric-adaptation cp /tmp/adaptation_scripts.tgz {{ pod.stdout }}:/tmp/'
+
+  - name: changing permission for POD_FILE_COLLECTOR
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/POD_FILE_COLLECTOR/ -R'
+    ignore_errors: yes
+
+  - name: changing permission for af_main
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/af_main/ -R'
+    ignore_errors: yes
+
+  - name: changing permission for air_health_check
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- sudo chown ericuser:users /mount/volumes/script/air_health_check/ -R'
+    ignore_errors: yes
+
+  - name: untar on pod
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- tar xzf /tmp/adaptation_scripts.tgz -C /mount/volumes/script/'
+
+  - name: set execution flag
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- find /mount/volumes/script/ -name "*.py" -exec chmod 755 {} \;'
+
+  - name: remove /tmp file on pod
+    shell: bash -ilc 'kubectl exec -t -n {{ namespace }} {{ pod.stdout }} -c eric-adaptation -- \rm /tmp/adaptation_scripts.tgz'

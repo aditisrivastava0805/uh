@@ -1,0 +1,7 @@
+{
+   "cha_access_nchf_charging_http_request_average_duration_milliseconds": {"NCHF_CC_REQUESTS_LATENCY": 500},
+  "cha_access_nchf_policy_http_request_average_duration_milliseconds": {"NCHF_SLC_REQUESTS_LATENCY": 500},
+  "cha_access_rating_diameter_request_average_duration_milliseconds": {"DIAMETER_REQUESTS_LATENCY": 500},
+  "cha_access_policy_sy_diameter_request_average_duration_milliseconds": {"POLICY_SY_REQUESTS_LATENCY": 500},
+  "cha_access_external_rating_diameter_request_average_duration_milliseconds": {"CIP_IP_REQUESTS_LATENCY": 500}
+}

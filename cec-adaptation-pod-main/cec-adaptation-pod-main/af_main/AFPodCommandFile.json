@@ -1,0 +1,26 @@
+{
+    "get_release_names": {
+        "command": "helm -n {namespace} ls -a | grep caf | egrep -v assistant"
+    },
+    "get_af_pods": {
+        "command": "helm -n {namespace} ls -a | grep \"{releaseName}\\s\" | egrep -v assistant"
+        },
+    "af_main": {
+        "command": "helm get all {releaseName} -n {namespace}  | grep -w passiveMain -A 1 | tail -n 1"
+        },
+    "af_passive": {
+        "command": "helm get all {releaseName}-passive -n {namespace} | grep -w passiveMain -A 1 | tail -n 1"
+        },
+    "pod_status": {
+        "command": "kubectl get pod -n {namespace} | grep caf | grep -v assistant"
+    },
+    "dns_port_check":
+    {
+        "command": "ss -na|grep \"0.0.0.0:53\"|grep LISTEN"
+    },
+    "nslookup": {
+        "command": "kubectl exec -it {pod_name} -n {namespace} -- nslookup 999999999.9.msisdn.sub.cs 127.0.0.1",
+        "pass_case": "server can't find 999999999.9.msisdn.sub.cs: NXDOMAIN",
+        "fail_case": "no servers could be reached"
+    }
+}

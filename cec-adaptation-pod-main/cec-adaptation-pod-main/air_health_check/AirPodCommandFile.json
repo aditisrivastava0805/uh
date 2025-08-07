@@ -1,0 +1,15 @@
+{
+    "check_healthy_pod": {
+        "command": "kubectl get pods -n {namespace} | egrep cair | grep -v gui | grep Running | grep '1/1' | sed \"s/(.* ago)//\""
+        },
+    "cluster_ip": {
+        "command": "kubectl get httpproxy -n {namespace} | grep cair | awk -F' ' '{print $2}'"
+        },
+    "air_pod_max_count" : {
+        "command": "kubectl get pods -n {namespace} | egrep cair | grep -v gui"
+    },
+    "envoy_pod_check": {
+        "command": "kubectl get pod -n {namespace} | grep envoy | grep trf | grep -q '1/1' && echo Healthy || echo Unhealthy"
+    },
+    "air_pod_threshold": 50
+}

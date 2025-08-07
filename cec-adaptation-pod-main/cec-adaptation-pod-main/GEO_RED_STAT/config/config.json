@@ -1,0 +1,35 @@
+{
+     "wait_to_start_secs": 100,
+     "pod": "sdp",
+     "file_newer_than_min": 12,
+     "max_processes": 5,
+     "dir_lookup":
+     {
+        "var/opt/fds/statistics/":
+        {
+            "search_keyword_for_file": ["*_PSC-TrafficHandler_8.1_A_1_System.*.stat","*_PSC-TrafficHandler_8.1_A_1_ServiceClass.*.stat","*_PSC-TrafficHandler_*_ExtendedStatistic.*.stat.tmp"],
+            "splunk_backup_dir": "/var/log/splunk/cEC/SDP/"
+        },
+        "var/opt/fds/statistics/Usage/":
+        {
+            "search_keyword_for_file": ["TrafficUsageStatistics_*.stat"],
+            "splunk_backup_dir": "/var/log/splunk/cEC/SDP/"
+        },
+        "tmp/":
+        {
+            "search_keyword_for_file": ["*.stat.0","*.stat.1"],
+            "splunk_backup_dir": "/var/log/splunk/cEC/SDP_TRAFFIC_HANDLER/"
+        }
+     },
+     "whitelist_pod_enable": "false",
+     "whitelist_pods": [],
+     "blacklist_pods": [],
+     "splunk": {
+        "splunk_user_group": "adaptation",
+        "splunk_container": "sftp"
+     },
+     "sftp":{
+        "user": "adaptation",
+        "password": "adaptation"
+     }
+}

@@ -1,0 +1,22 @@
+{
+  "wait_to_start_secs": 60,
+  "max_processes": 1,
+  "max_threshold_value": 80,
+  "kafka_message_template": {
+    "category": "CORE - IN",
+    "platform": "IN",
+    "source_owner": "Tier2_CC",
+    "@table": [
+      "kpi_name",
+      "kpi_value",
+      "kpi_result"
+    ],
+    "ref_id": "{random}",
+    "kpi_last_updated_date": null,
+    "kpi_source": null,
+    "config_item": null,
+    "kpi_info": null,
+    "src_modified_dt": null,
+    "local_modified_dt": null
+  }
+}

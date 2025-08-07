@@ -1,0 +1,10 @@
+{
+  "ChargingDlbLostExternalPeer": "CAF_CTA_CONNECTION_STATUS",
+  "Could not send file to Secondary SFTP host|Could not send file to Primary SFTP host": "CAF_EMM_CDR_TRANSFER",
+  "NrfAbsoluteConnectionFailure": "CAF_NRF_CONNECTION_STATUS",
+  "Could not create/lost CIL connection": "EDM_CIL_CONNECTION_STATUS",
+  "CIL Consumer communication error": "CIL_COMMUNICATION_FAILURE",
+  "CIL Load Regulation Error": "CIL_OVERLOAD_STATUS",
+  "The EDM Publisher instance is consuming too much memory": "EDM_MEMORY_CONSUMPTION",
+  "Max heap usage reached": "EDM_CRITICAL_FAILURE_STATUS"
+}

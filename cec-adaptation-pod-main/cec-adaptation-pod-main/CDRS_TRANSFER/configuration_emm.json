@@ -1,0 +1,27 @@
+{
+    "extensions": {
+      "CHAD" : "/var/opt/mediation/collection/CHF/CAF/BssfChargingCdrAsn1/",
+      "CHF"  : "/var/opt/mediation/collection/CHF/CAF/BssfChfCdrAsn1/",
+      "log"  : "/var/opt/mediation/collection/CHF/CAF/Log/",
+      "sum"  : "",
+      "err"  : "/var/opt/mediation/collection/CHF/CAF/Error/"
+    },
+    "directory": "/home/nfs/",
+    "sftpHostNameInfo": {
+        "ttncafgp1|syocafgp1|chacafgp1": {
+            "primaryHostname":"10.137.239.6",
+            "secondaryHostname": "10.137.239.133"
+        },
+        "aurcafgp2|polcafgp2|rivcafgp2": {
+            "primaryHostname":"10.152.8.6",
+            "secondaryHostname": "10.152.8.133"
+        },
+      "miniaurcaf": {
+            "primaryHostname":"",
+            "secondaryHostname": ""
+        }
+    },
+    "username": "SVC_CAF_EMM",
+    "password": "Mediation@123",
+    "port": 22
+}

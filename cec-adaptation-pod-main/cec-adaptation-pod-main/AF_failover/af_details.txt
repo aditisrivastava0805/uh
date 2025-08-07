@@ -1,0 +1,18 @@
+details pod-name helm-release-name traffic_IP ONM_IP Access_server_IP URL
+mainAF caf0003-main-af-0 caf0003-main 10.201.182.167 10.247.45.56 10.247.37.17 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.6&envQmt=PO%2Fpoaccdec01%2Fcaf0003&fileName
+passiveAF caf0103-passive-main-af-0 caf0103-passive 10.201.40.21 10.247.156.29 10.247.149.17 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.6&envQmt=TI%2Ftiaccdec01%2Fcaf0103&fileName
+AssistantAF1 caf0001-assistant-af-0 caf0001-assistant NA NA 10.247.37.17 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.4&envQmt=PO%2Fpoaccdec01%2Fcaf0001&fileName
+AssistantAF2 caf0101-assistant-af-0 caf0101-assistant NA NA 10.247.149.17 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.4&envQmt=TI%2Ftiaccdec01%2Fcaf0101&fileName
+AssistantAF3 caf0201-assistant-af-0 caf0201-assistant NA NA 10.246.208.203 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.4&envQmt=RI%2Friccdec01%2Fcaf0201&fileName
+AssistantAF4 caf0301-assistant-af-0 caf0301-assistant NA NA 10.246.100.209 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.4&envQmt=AU%2Fauccdec01%2Fcaf0301&fileName
+AssistantAF5 caf0401-assistant-af-0 caf0401-assistant NA NA 10.246.168.17 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.4&envQmt=SY%2Fsyccdec01%2Fcaf0401&fileName
+AssistantAF6 caf0501-assistant-af-0 caf0501-assistant NA NA 10.246.212.204 /api/cac-files/get-ecc-file?appType=cAF&version=ECC-22.4&envQmt=CH%2Fchccdec01%2Fcaf0501&fileName
+..
+..
+sleeptime 90
+retrytime 5
+ext_svc_url 10.247.45.249:8082/af_pod/status 10.247.156.231:8082/af_pod/status
+CDD_handler_primary 10.247.153.234
+CDD_handler_secondary 10.247.41.170
+curr_pkg /api/artifactory/download-file?url=https%3A%2F%2Fartifactory.rosetta.ericssondevops.com%2Fartifactory%2Fsd-mana-tmo-bss-generic%2FECC-22.4%2FAF%2FPDU%2FHELMCHARTS%2F19089-CXD1010312_1_301.tar.gz
+lat_pkg /api/artifactory/download-file?url=https%3A%2F%2Fartifactory.rosetta.ericssondevops.com%2Fartifactory%2Fsd-mana-tmo-bss-generic%2FECC-22.6-GA%2FAF%2FPDU%2FHELMCHARTS%2F19089-CXD1010312_1_324.tar.gz

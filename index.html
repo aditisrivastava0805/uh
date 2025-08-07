@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenAI Uplift Automation Tool</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>" type="image/svg+xml">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --border-radius: 6px;
+            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --notification-color: #27ae60;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .top-section {
+            display: flex;
+            gap: 30px;
+            height: 100vh;
+        }
+
+        .left-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .left-section-part {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+        }
+
+        .library-section {
+            flex: 1;
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            min-width: 500px;
+        }
+
+        .stages-section {
+            background-color: transparent;
+        }
+
+        .stages-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: var(--dark-color);
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .description {
+            margin-bottom: 25px;
+            color: #555;
+        }
+
+        .toggle-description {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            text-decoration: underline;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-description:hover {
+            color: #2980b9;
+        }
+
+        .description-content {
+            margin-top: 15px;
+        }
+
+        .description-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .description-content li {
+            margin-bottom: 8px;
+        }
+
+        .env-specs {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+        }
+
+        .env-specs p {
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .env-specs p:last-child {
+            margin-bottom: 0;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #startButton {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        #startButton:hover:not(:disabled) {
+            background-color: #27ae60;
+        }
+
+        #cancelButton {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        #cancelButton:hover:not(:disabled) {
+            background-color: #c0392b;
+        }
+
+        #resetButton {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        #resetButton:hover:not(:disabled) {
+            background-color: #e67e22;
+        }
+
+        .stage-block {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            border-left: 5px solid #ccc;
+            transition: all 0.3s ease;
+        }
+
+        .stage-block.active {
+            border-left: 5px solid var(--primary-color);
+            background-color: #f0f8ff;
+        }
+
+        .stage-block.completed {
+            border-left: 5px solid var(--secondary-color);
+        }
+
+        .stage-block.error {
+            border-left: 5px solid var(--error-color);
+        }
+
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stage-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .stage-status {
+            font-size: 0.9rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background-color: #eee;
+        }
+
+        .stage-status.running {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .stage-status.completed {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .stage-status.error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .summary {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .library-selection {
+            height: 100%;
+        }
+
+        .library-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--light-color);
+            margin-bottom: 20px;
+        }
+
+        .library-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.2s ease;
+        }
+
+        .library-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .library-tab:hover {
+            color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .library-content {
+            display: none;
+            height: 450px;
+            overflow-y: auto;
+        }
+
+        .library-content.active {
+            display: block;
+        }
+
+        .product-group {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .product-header {
+            background-color: var(--light-color);
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .product-header:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .product-arrow {
+            transition: transform 0.2s ease;
+        }
+
+        .product-arrow.expanded {
+            transform: rotate(90deg);
+        }
+
+        .product-versions {
+            display: none;
+            padding: 15px;
+            background-color: white;
+        }
+
+        .product-versions.expanded {
+            display: block;
+        }
+
+        .version-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .version-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .version-item.selected {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .version-info {
+            flex: 1;
+        }
+
+        .version-number {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .version-description {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .version-item.selected .version-description {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .version-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-left: 10px;
+        }
+
+        .selected-summary {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+        }
+
+        .selected-count {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+        }
+
+        .selected-items {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .selected-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .selected-item-info {
+            flex: 1;
+        }
+
+        .selected-item-product {
+            font-weight: 600;
+        }
+
+        .selected-item-version {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .remove-selected {
+            background-color: var(--error-color);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .empty-message {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        .full-log {
+            white-space: pre-line;
+        }
+
+        .toggle-log {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .toggle-log:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+
+        .full-log {
+            display: none;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+
+        .report-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .report-buttons a {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .report-buttons a:hover {
+            background-color: #2980b9;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--notification-color);
+            color: white;
+            padding: 15px 25px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .debug-section {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        #previewPromptBtn {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        #previewPromptBtn:hover {
+            background-color: #5a6268;
+        }
+
+        .prompt-stats {
+            background: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .rag-context {
+            margin-bottom: 20px;
+        }
+
+        .rag-context pre {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .full-prompt {
+            margin-top: 10px;
+        }
+
+        .full-prompt pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Uplift Mode Selection Styles */
+        .uplift-mode-selection {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: var(--light-color);
+            border-radius: var(--border-radius);
+        }
+
+        .mode-options {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .mode-option label {
+            font-weight: 600;
+            color: var(--dark-color);
+            cursor: pointer;
+        }
+
+        /* Adaptation Pod Selection Styles */
+        .adaptation-pod-selection {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            border: 2px solid var(--primary-color);
+        }
+
+        .adaptation-applications {
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+
+        .application-group {
+            margin-bottom: 15px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+        .application-header {
+            background-color: var(--light-color);
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .application-header:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .application-name {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .application-arrow {
+            transition: transform 0.2s ease;
+        }
+
+        .application-arrow.expanded {
+            transform: rotate(90deg);
+        }
+
+        .application-modules {
+            display: none;
+            padding: 15px;
+            background-color: white;
+        }
+
+        .application-modules.expanded {
+            display: block;
+        }
+
+        .module-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .module-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .module-item.selected {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .module-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .module-item label {
+            font-weight: 500;
+            color: var(--dark-color);
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .module-group {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            border: 1px solid #ddd;
+            transition: all 0.2s ease;
+        }
+
+        .module-group:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .module-header input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .module-header label {
+            font-weight: 600;
+            color: var(--dark-color);
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .module-details {
+            font-size: 0.9rem;
+            color: #666;
+            margin-left: 28px;
+            line-height: 1.4;
+        }
+
+        .selected-adaptation-summary {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+        }
+
+        .selected-adaptation-summary h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .top-section {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .mode-options {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .library-section {
+                min-width: auto;
+            }
+        }
+        
+        /* Ensure hidden class works properly */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="notification" class="notification hidden">Environment reset successfully!</div>
+    <div class="container">
+        <div class="top-section">
+            <!-- Left Column: Information, Controls, and All Stages -->
+            <div class="left-column">
+                <!-- Tool Information and Controls -->
+                <div class="left-section-part">
+                    <h1 id="mainTitle">GenAI Uplift Automation Tool</h1>
+                    
+                    <div class="description">
+                        <span id="toggleDescription" class="toggle-description">
+                            Expand Description
+                            <span id="descriptionArrow">&#9660;</span>
+                        </span>
+                        <div id="descriptionContent" class="description-content hidden">
+                            <p><strong>Overview:</strong></p>
+                            <ul>
+                                <li>This tool automates the process of uplifting any Ericsson application and its respective test cases to a newer version using Generative AI.</li>
+                                <li>The user can specify the product and target version (e.g., <em>EDA 2.17 to 2.21</em>).</li>
+                            </ul>
+
+                            <p><strong>Capabilities:</strong></p>
+                            <ul>
+                                <li>Reads from the CPI store to understand uplift requirements and performs the upgrade.</li>
+                                <li>Supports granular software upgrades (e.g., <em>Python 11 to 12</em>).</li>
+                            </ul>
+
+                            <p><strong>Verification:</strong></p>
+                            <ul>
+                                <li>The system is verified through ESSVT.</li>
+                                <li>Runs test cases and the application before and after uplifts to ensure functionality requirements are fulfilled.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Uplift Mode Selection -->
+                    <div class="uplift-mode-selection">
+                        <h2>Select Uplift Type</h2>
+                        <div class="mode-options">
+                            <div class="mode-option">
+                                <input type="radio" id="jdk_mode" name="uplift_mode" value="jdk" checked>
+                                <label for="jdk_mode">JDK Modules</label>
+                            </div>
+                            <div class="mode-option">
+                                <input type="radio" id="adaptation_pod_mode" name="uplift_mode" value="adaptation_pod">
+                                <label for="adaptation_pod_mode">Adaptation Pod Scripts</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Adaptation Pod Module Selection (hidden by default) -->
+                    <div id="adaptation-pod-selection" class="adaptation-pod-selection hidden">
+                        <h2>Select Application Modules</h2>
+                        <div class="adaptation-applications" id="adaptationApplications">
+                            <!-- Applications will be dynamically generated here -->
+                        </div>
+                        
+                        <div class="selected-adaptation-summary">
+                            <h3>Selected Modules Summary</h3>
+                            <div id="selectedAdaptationCount" class="selected-count">0 modules selected</div>
+                            <div id="selectedAdaptationModules" class="selected-items">
+                                <p class="empty-message">No modules selected</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="env-specs" id="envSpecs">
+                        <h2>Demo Environment Specifications</h2>
+                        <p id="prodEnv">Production Environment: JDK 8</p>
+                        <p id="targetEnv">Target Uplift Environment: JDK 17</p>
+                    </div>
+                    
+                    <div class="controls">
+                        <h2>Controls</h2>
+                        <button id="startButton">
+                            <span class="spinner hidden"></span>
+                            Start Uplift Process
+                        </button>
+                        <button id="cancelButton" disabled>Cancel Process</button>
+                        <button id="resetButton" disabled>Reset Environment</button>
+                    </div>
+                </div>
+                
+                <!-- Execution Stages -->
+                <div class="stages-section">
+                    <div class="left-section-part">
+                        <h2>Uplift Process Stages</h2>
+                        <div class="stages-grid">
+                            <!-- Stage 1: Baseline Tests -->
+                            <div id="baseline_tests" class="stage-block">
+                                <div class="stage-header">
+                                    <div class="stage-title">Stage 1: Baseline Tests</div>
+                                    <div class="stage-status">Pending</div>
+                                </div>
+                                <p class="summary">Waiting to run baseline tests on production environment (JDK 8)...</p>
+                                <div class="report-buttons"></div>
+                            </div>
+                            
+                            <!-- Stage 2: Uplifting ESSVT -->
+                            <div id="uplifting_essvt" class="stage-block">
+                                <div class="stage-header">
+                                    <div class="stage-title">Stage 2: Uplifting ESSVT Test Code</div>
+                                    <div class="stage-status">Pending</div>
+                                </div>
+                                <p class="summary">Waiting to uplift ESSVT test code to JDK 17...</p>
+                                <button class="toggle-log">Show Logs</button>
+                                <div class="full-log"></div>
+                            </div>
+                            
+                            <!-- Stage 3: ESSVT Uplifted Tests -->
+                            <div id="essvt_uplifted_tests" class="stage-block">
+                                <div class="stage-header">
+                                    <div class="stage-title">Stage 3: ESSVT Uplifted Tests</div>
+                                    <div class="stage-status">Pending</div>
+                                </div>
+                                <p class="summary">Waiting to run uplifted ESSVT tests against original source code...</p>
+                                <div class="report-buttons"></div>
+                            </div>
+                            
+                            <!-- Stage 4: Uplifting Source Code -->
+                            <div id="uplifting_source" class="stage-block">
+                                <div class="stage-header">
+                                    <div class="stage-title">Stage 4: Uplifting Source Code</div>
+                                    <div class="stage-status">Pending</div>
+                                </div>
+                                <p class="summary">Waiting to uplift source code to JDK 17...</p>
+                                <button class="toggle-log">Show Logs</button>
+                                <div class="full-log"></div>
+                            </div>
+                            
+                            <!-- Stage 5: Final Tests -->
+                            <div id="final_tests" class="stage-block">
+                                <div class="stage-header">
+                                    <div class="stage-title">Stage 5: Final Tests</div>
+                                    <div class="stage-status">Pending</div>
+                                </div>
+                                <p class="summary">Waiting to run final tests with both uplifted ESSVT and uplifted source code...</p>
+                                <div class="report-buttons"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column: Product Library Selection -->
+            <div class="library-section">
+                <div class="library-selection">
+                    <h2>Product Library Selection</h2>
+                    <p class="description">Select relevant product libraries to enhance AI context during modernization:</p>
+                    
+                    <div class="library-tabs">
+                        <button class="library-tab active" data-tab="cpi">CPI Libraries</button>
+                        <button class="library-tab" data-tab="cal">CAL Libraries</button>
+                    </div>
+                    
+                    <div id="cpiContent" class="library-content active">
+                        <div class="loading">Loading CPI libraries...</div>
+                    </div>
+                    
+                    <div id="calContent" class="library-content">
+                        <div class="loading">Loading CAL libraries...</div>
+                    </div>
+                    
+                    <div class="selected-summary">
+                        <div class="selected-count">Selected Libraries: <span id="selectedCount">0</span></div>
+                        <div id="selectedItems" class="selected-items">
+                            <p class="empty-message">No libraries selected</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this button somewhere in your existing UI -->
+    <div class="debug-section">
+        <h3>🔍 Debug Tools</h3>
+        <button id="previewPromptBtn" class="btn btn-secondary">
+            Preview Enhanced Prompt
+        </button>
+    </div>
+
+    <!-- Add this modal for displaying the prompt -->
+    <div id="promptModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 1200px; max-height: 80%; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>🔍 Enhanced Prompt Preview</h2>
+                <span class="close" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <div class="prompt-stats" style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                    <strong>Prompt Statistics:</strong>
+                    <ul>
+                        <li>Total Prompt Length: <span id="promptLength">-</span> characters</li>
+                        <li>RAG Context Length: <span id="ragContextLength">-</span> characters</li>
+                        <li>Selected Libraries: <span id="selectedLibrariesCount">-</span></li>
+                        <li>Target JDK: <span id="targetJdk">-</span></li>
+                    </ul>
+                </div>
+                
+                <div class="rag-context" style="margin-bottom: 20px;">
+                    <h4>📚 RAG Context Retrieved:</h4>
+                    <pre id="ragContextPreview" style="background: #e8f5e8; padding: 10px; border-radius: 5px; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">Loading...</pre>
+                </div>
+                
+                <div class="full-prompt">
+                    <h4>📝 Complete Enhanced Prompt:</h4>
+                    <pre id="fullPromptPreview" style="background: #f8f8f8; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">Loading...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let appState = 'IDLE'; // IDLE, RUNNING, CANCELED, FINISHED
+        let currentStage = null;
+        let eventSource = null;
+
+        // DOM Elements
+        const startButton = document.getElementById('startButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const resetButton = document.getElementById('resetButton');
+        const stageBlocks = document.querySelectorAll('.stage-block');
+        const spinner = document.querySelector('.spinner');
+        const notification = document.getElementById('notification');
+
+        // Stage IDs mapping to their display names
+        const stageMap = {
+            'baseline_tests': 'Stage 1: Baseline Tests',
+            'uplifting_essvt': 'Stage 2: Uplifting Test Code',
+            'essvt_uplifted_tests': 'Stage 3: Test Code Validation',
+            'uplifting_source': 'Stage 4: Uplifting Source Code',
+            'final_tests': 'Stage 5: Final Tests'
+        };
+
+        // Global uplift mode state
+        let upliftMode = 'jdk'; // 'jdk' or 'adaptation_pod'
+        
+        // Adaptation pod module data
+        const adaptationPodModules = {
+            'cCAF': {
+                name: 'cCAF (Charging Application Function)',
+                modules: {
+                    'KAFKA_CAF': 'KAFKA CAF Processing',
+                    'CAF_HEALTH_CHECK_FILE_GENERATOR': 'CAF Health Check File Generator',
+                    'CDRS_TRANSFER': 'CDR Transfer Service',
+                    'NFS_DISK_STATUS_CHECK': 'NFS Disk Status Monitor',
+                    'POD_FILE_COLLECTOR': 'Pod File Collector',
+                    'POD_FILE_SENDER': 'Pod File Sender'
+                }
+            },
+            'UAF': {
+                name: 'UAF (User Access Function)',
+                modules: {
+                    'KAFKA_UAF': 'KAFKA UAF Processing'
+                }
+            },
+            'cCSA': {
+                name: 'cCSA (Customer Service Adaptation)',
+                modules: {
+                    'KAFKA_CSA': 'KAFKA CSA Processing',
+                    'POD_FILE_COLLECTOR': 'Pod File Collector',
+                    'POD_FILE_SENDER': 'Pod File Sender'
+                }
+            },
+            'cSDP': {
+                name: 'cSDP (Service Data Processing)',
+                modules: {
+                    'KAFKA_SDP_GEORED': 'KAFKA SDP Geo-Redundancy',
+                    'KAFKA_SDP_POSTPAID': 'KAFKA SDP Postpaid',
+                    'KAFKA_SDP_PREPAID': 'KAFKA SDP Prepaid',
+                    'SDP_STAT': 'SDP Statistics',
+                    'GEORED_STAT': 'Geo-Redundancy Statistics'
+                }
+            },
+            'cAIR': {
+                name: 'cAIR (Application Instance Repository)',
+                modules: {
+                    'AIR_STAT': 'AIR Statistics',
+                    'KAFKA_AIR': 'KAFKA AIR Processing',
+                    'air_health_check': 'AIR Health Check'
+                }
+            },
+            'cCTA': {
+                name: 'cCTA (Call Traffic Analysis)',
+                modules: {
+                    'KAFKA_CTA': 'KAFKA CTA Processing',
+                    'POD_FILE_COLLECTOR': 'Pod File Collector'
+                }
+            },
+            'cAF': {
+                name: 'cAF (Application Function)',
+                modules: {
+                    'KAFKA_AF': 'KAFKA AF Processing',
+                    'af_main': 'AF Main Service',
+                    'AF_STAT': 'AF Statistics'
+                }
+            },
+            'COMMON_TO_CLUSTER': {
+                name: 'Common to Cluster',
+                modules: {
+                    'CLEAN_UP': 'Cleanup Utilities',
+                    'BACKUP_POD': 'Pod Backup Operations',
+                    'KAFKA_SENDER': 'KAFKA Message Sender',
+                    'lib': 'Shared Libraries',
+                    'KAFKA_PLATFORM': 'KAFKA Platform Services'
+                }
+            }
+        };
+        
+        let selectedAdaptationModules = [];
+
+        // Library selection functionality
+        let selectedLibraries = [];
+        let libraryData = {};
+        const selectedCount = document.getElementById('selectedCount');
+        const selectedItems = document.getElementById('selectedItems');
+
+        // Uplift mode switching functionality
+        function initializeUpliftModeHandlers() {
+            const jdkModeRadio = document.getElementById('jdk_mode');
+            const adaptationPodModeRadio = document.getElementById('adaptation_pod_mode');
+            const adaptationPodSelection = document.getElementById('adaptation-pod-selection');
+            const librarySection = document.querySelector('.library-section');
+            const prodEnv = document.getElementById('prodEnv');
+            const targetEnv = document.getElementById('targetEnv');
+            const mainTitle = document.getElementById('mainTitle');
+
+            // Check if elements exist before proceeding
+            if (!jdkModeRadio || !adaptationPodModeRadio) {
+                console.error('Uplift mode radio buttons not found');
+                return;
+            }
+
+            function updateModeDisplay() {
+                if (adaptationPodModeRadio.checked) {
+                    upliftMode = 'adaptation_pod';
+                    if (adaptationPodSelection) adaptationPodSelection.classList.remove('hidden');
+                    if (librarySection) librarySection.classList.add('hidden');
+                    if (prodEnv) prodEnv.textContent = 'Production Environment: Python 3.8';
+                    if (targetEnv) targetEnv.textContent = 'Target Uplift Environment: Python 3.9';
+                    if (mainTitle) mainTitle.textContent = 'GenAI Python Uplift Tool';
+                    
+                    // Update stage descriptions for adaptation pod
+                    updateStageDescriptions('adaptation_pod');
+                } else {
+                    upliftMode = 'jdk';
+                    if (adaptationPodSelection) adaptationPodSelection.classList.add('hidden');
+                    if (librarySection) librarySection.classList.remove('hidden');
+                    if (prodEnv) prodEnv.textContent = 'Production Environment: JDK 8';
+                    if (targetEnv) targetEnv.textContent = 'Target Uplift Environment: JDK 17';
+                    if (mainTitle) mainTitle.textContent = 'GenAI JDK Uplift Tool';
+                    
+                    // Update stage descriptions for JDK
+                    updateStageDescriptions('jdk');
+                }
+            }
+
+            jdkModeRadio.addEventListener('change', updateModeDisplay);
+            adaptationPodModeRadio.addEventListener('change', updateModeDisplay);
+            
+            // Initialize adaptation pod module handlers
+            initializeAdaptationPodHandlers();
+        }
+
+        function updateStageDescriptions(mode) {
+            const stage2 = document.querySelector('#uplifting_essvt .stage-title');
+            const stage2Summary = document.querySelector('#uplifting_essvt .summary');
+            const stage3 = document.querySelector('#essvt_uplifted_tests .stage-title');
+            const stage3Summary = document.querySelector('#essvt_uplifted_tests .summary');
+            const stage4Summary = document.querySelector('#uplifting_source .summary');
+            const stage5Summary = document.querySelector('#final_tests .summary');
+
+            if (mode === 'adaptation_pod') {
+                stage2.textContent = 'Stage 2: Uplifting Test Code';
+                stage2Summary.textContent = 'Waiting to uplift Robot Framework and Python test code to Python 3.9...';
+                stage3.textContent = 'Stage 3: Test Code Validation';
+                stage3Summary.textContent = 'Waiting to run uplifted test code against original source code...';
+                stage4Summary.textContent = 'Waiting to uplift adaptation pod source code to Python 3.9...';
+                stage5Summary.textContent = 'Waiting to run final tests with both uplifted test code and uplifted source code...';
+            } else {
+                stage2.textContent = 'Stage 2: Uplifting ESSVT Test Code';
+                stage2Summary.textContent = 'Waiting to uplift ESSVT test code to JDK 17...';
+                stage3.textContent = 'Stage 3: ESSVT Uplifted Tests';
+                stage3Summary.textContent = 'Waiting to run uplifted ESSVT tests against original source code...';
+                stage4Summary.textContent = 'Waiting to uplift source code to JDK 17...';
+                stage5Summary.textContent = 'Waiting to run final tests with both uplifted ESSVT and uplifted source code...';
+            }
+        }
+
+        // Adaptation pod module selection functionality
+        function initializeAdaptationPodHandlers() {
+            generateAdaptationPodModules();
+            
+            // Add change listeners to module checkboxes
+            document.addEventListener('change', function(e) {
+                if (e.target.name === 'adaptationModules[]') {
+                    updateSelectedAdaptationModules();
+                }
+            });
+        }
+
+        // Generate adaptation pod modules dynamically
+        function generateAdaptationPodModules() {
+            const container = document.getElementById('adaptationApplications');
+            container.innerHTML = '';
+            
+            Object.entries(adaptationPodModules).forEach(([appKey, appInfo]) => {
+                const appElement = document.createElement('div');
+                appElement.className = 'application-group';
+                
+                appElement.innerHTML = `
+                    <div class="application-header" onclick="toggleApplication('${appKey}')">
+                        <span class="application-name">${appInfo.name}</span>
+                        <span class="application-arrow" id="arrow-${appKey}">▶</span>
+                    </div>
+                    <div class="application-modules" id="modules-${appKey}">
+                        ${Object.entries(appInfo.modules).map(([moduleKey, moduleDesc]) => `
+                            <div class="module-item">
+                                <input type="checkbox" id="module-${moduleKey}" name="adaptationModules[]" value="${moduleKey}">
+                                <label for="module-${moduleKey}">
+                                    <strong>${moduleKey}</strong>
+                                    <div style="font-size: 0.9em; color: #666; margin-top: 2px;">${moduleDesc}</div>
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(appElement);
+            });
+        }
+
+        function toggleApplication(appKey) {
+            const modulesDiv = document.getElementById(`modules-${appKey}`);
+            const arrow = document.getElementById(`arrow-${appKey}`);
+            
+            if (modulesDiv.classList.contains('expanded')) {
+                modulesDiv.classList.remove('expanded');
+                arrow.classList.remove('expanded');
+            } else {
+                modulesDiv.classList.add('expanded');
+                arrow.classList.add('expanded');
+            }
+        }
+
+        function updateSelectedAdaptationModules() {
+            const checkboxes = document.querySelectorAll('input[name="adaptationModules[]"]:checked');
+            selectedAdaptationModules = Array.from(checkboxes).map(cb => cb.value);
+            
+            const selectedCount = document.getElementById('selectedAdaptationCount');
+            const selectedItems = document.getElementById('selectedAdaptationModules');
+            
+            selectedCount.textContent = `${selectedAdaptationModules.length} module${selectedAdaptationModules.length !== 1 ? 's' : ''} selected`;
+            
+            if (selectedAdaptationModules.length === 0) {
+                selectedItems.innerHTML = '<p class="empty-message">No modules selected</p>';
+            } else {
+                selectedItems.innerHTML = '';
+                selectedAdaptationModules.forEach(moduleKey => {
+                    // Find which application this module belongs to
+                    let appName = '';
+                    let moduleDesc = '';
+                    
+                    for (const [appKey, appInfo] of Object.entries(adaptationPodModules)) {
+                        if (appInfo.modules[moduleKey]) {
+                            appName = appInfo.name;
+                            moduleDesc = appInfo.modules[moduleKey];
+                            break;
+                        }
+                    }
+                    
+                    const selectedItem = document.createElement('div');
+                    selectedItem.className = 'selected-item';
+                    
+                    const itemInfo = document.createElement('div');
+                    itemInfo.className = 'selected-item-info';
+                    
+                    const itemName = document.createElement('div');
+                    itemName.className = 'selected-item-product';
+                    itemName.textContent = `${moduleKey} (${appName})`;
+                    
+                    const itemDesc = document.createElement('div');
+                    itemDesc.className = 'selected-item-version';
+                    itemDesc.textContent = moduleDesc;
+                    
+                    itemInfo.appendChild(itemName);
+                    itemInfo.appendChild(itemDesc);
+                    
+                    const removeButton = document.createElement('button');
+                    removeButton.className = 'remove-selected';
+                    removeButton.textContent = 'Remove';
+                    removeButton.addEventListener('click', () => {
+                        const checkbox = document.getElementById(`module-${moduleKey}`);
+                        if (checkbox) {
+                            checkbox.checked = false;
+                            updateSelectedAdaptationModules();
+                        }
+                    });
+                    
+                    selectedItem.appendChild(itemInfo);
+                    selectedItem.appendChild(removeButton);
+                    selectedItems.appendChild(selectedItem);
+                });
+            }
+        }
+
+        // Parse library data to separate CPI and CAL
+        function parseLibraryData(libraries) {
+            const parsed = { cpi: {}, cal: {} };
+            
+            for (const [category, categoryLibraries] of Object.entries(libraries)) {
+                const type = category.toLowerCase().startsWith('cpi') ? 'cpi' : 'cal';
+                parsed[type][category] = categoryLibraries;
+            }
+            
+            return parsed;
+        }
+
+        // Load libraries from API
+        async function loadLibraries() {
+            try {
+                const response = await fetch('/api/libraries');
+                if (response.ok) {
+                    const data = await response.json();
+                    libraryData = parseLibraryData(data.search_filters);
+                    displayCPILibraries();
+                    displayCALLibraries();
+                } else {
+                    document.getElementById('cpiContent').innerHTML = '<div class="error">Failed to load libraries</div>';
+                    document.getElementById('calContent').innerHTML = '<div class="error">Failed to load libraries</div>';
+                }
+            } catch (error) {
+                console.error('Error loading libraries:', error);
+                document.getElementById('cpiContent').innerHTML = '<div class="error">Error loading libraries</div>';
+                document.getElementById('calContent').innerHTML = '<div class="error">Error loading libraries</div>';
+            }
+        }
+
+        // Display CPI libraries
+        function displayCPILibraries() {
+            const container = document.getElementById('cpiContent');
+            container.innerHTML = '';
+            
+            for (const [category, libraries] of Object.entries(libraryData.cpi)) {
+                const categoryGroup = createCategoryGroup(category, libraries);
+                container.appendChild(categoryGroup);
+            }
+        }
+
+        // Display CAL libraries
+        function displayCALLibraries() {
+            const container = document.getElementById('calContent');
+            container.innerHTML = '';
+            
+            for (const [category, libraries] of Object.entries(libraryData.cal)) {
+                const categoryGroup = createCategoryGroup(category, libraries);
+                container.appendChild(categoryGroup);
+            }
+        }
+
+        // Create category group with libraries
+        function createCategoryGroup(category, libraries) {
+            const categoryGroup = document.createElement('div');
+            categoryGroup.className = 'product-group';
+            
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'product-header';
+            
+            const categoryNameSpan = document.createElement('span');
+            categoryNameSpan.className = 'product-name';
+            categoryNameSpan.textContent = category;
+            
+            const categoryArrow = document.createElement('span');
+            categoryArrow.className = 'product-arrow';
+            categoryArrow.innerHTML = '&#9654;';
+            
+            categoryHeader.appendChild(categoryNameSpan);
+            categoryHeader.appendChild(categoryArrow);
+            
+            const categoryLibraries = document.createElement('div');
+            categoryLibraries.className = 'product-versions';
+            
+            // Add click handler for category toggle
+            categoryHeader.addEventListener('click', () => {
+                const isExpanded = categoryLibraries.classList.contains('expanded');
+                categoryLibraries.classList.toggle('expanded', !isExpanded);
+                categoryArrow.classList.toggle('expanded', !isExpanded);
+            });
+            
+            // Create library items
+            for (const [libraryId, libraryTitle] of Object.entries(libraries)) {
+                const libraryItem = document.createElement('div');
+                libraryItem.className = 'version-item';
+                libraryItem.dataset.libraryId = libraryId;
+                
+                const libraryInfo = document.createElement('div');
+                libraryInfo.className = 'version-info';
+                
+                const libraryDescription = document.createElement('div');
+                libraryDescription.className = 'version-description';
+                libraryDescription.textContent = libraryTitle;
+                
+                libraryInfo.appendChild(libraryDescription);
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'version-checkbox';
+                checkbox.addEventListener('change', function() {
+                    toggleLibrarySelection(libraryId, category, libraryTitle, this.checked);
+                    
+                    // Update visual state
+                    if (this.checked) {
+                        libraryItem.classList.add('selected');
+                    } else {
+                        libraryItem.classList.remove('selected');
+                    }
+                });
+                
+                libraryItem.appendChild(libraryInfo);
+                libraryItem.appendChild(checkbox);
+                categoryLibraries.appendChild(libraryItem);
+            }
+            
+            categoryGroup.appendChild(categoryHeader);
+            categoryGroup.appendChild(categoryLibraries);
+            
+            return categoryGroup;
+        }
+
+        // Toggle library selection
+        function toggleLibrarySelection(libraryId, category, libraryTitle, selected) {
+            if (selected) {
+                if (!selectedLibraries.find(lib => lib.id === libraryId)) {
+                    selectedLibraries.push({
+                        id: libraryId,
+                        category: category,
+                        title: libraryTitle
+                    });
+                }
+            } else {
+                selectedLibraries = selectedLibraries.filter(lib => lib.id !== libraryId);
+            }
+            
+            updateSelectedDisplay();
+            saveSelectedLibraries();
+        }
+
+        // Update selected libraries display
+        function updateSelectedDisplay() {
+            selectedCount.textContent = selectedLibraries.length;
+            
+            if (selectedLibraries.length === 0) {
+                selectedItems.innerHTML = '<p class="empty-message">No libraries selected</p>';
+            } else {
+                selectedItems.innerHTML = '';
+                selectedLibraries.forEach(library => {
+                    const selectedItem = document.createElement('div');
+                    selectedItem.className = 'selected-item';
+                    
+                    const itemInfo = document.createElement('div');
+                    itemInfo.className = 'selected-item-info';
+                    
+                    const itemCategory = document.createElement('div');
+                    itemCategory.className = 'selected-item-product';
+                    itemCategory.textContent = library.category;
+                    
+                    const itemTitle = document.createElement('div');
+                    itemTitle.className = 'selected-item-version';
+                    itemTitle.textContent = library.title;
+                    
+                    itemInfo.appendChild(itemCategory);
+                    itemInfo.appendChild(itemTitle);
+                    
+                    const removeButton = document.createElement('button');
+                    removeButton.className = 'remove-selected';
+                    removeButton.textContent = 'Remove';
+                    removeButton.addEventListener('click', () => {
+                        removeLibrarySelection(library.id);
+                    });
+                    
+                    selectedItem.appendChild(itemInfo);
+                    selectedItem.appendChild(removeButton);
+                    selectedItems.appendChild(selectedItem);
+                });
+            }
+        }
+
+        // Remove library from selection
+        function removeLibrarySelection(libraryId) {
+            selectedLibraries = selectedLibraries.filter(lib => lib.id !== libraryId);
+            updateSelectedDisplay();
+            saveSelectedLibraries();
+            
+            // Update checkbox state
+            const checkbox = document.querySelector(`[data-library-id="${libraryId}"] input`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            
+            // Update library item visual state
+            const libraryItem = document.querySelector(`[data-library-id="${libraryId}"]`);
+            if (libraryItem) {
+                libraryItem.classList.remove('selected');
+            }
+        }
+
+        // Tab switching functionality
+        document.querySelectorAll('.library-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                document.querySelectorAll('.library-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.library-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                
+                // Show corresponding content
+                const targetContent = document.getElementById(tab.dataset.tab + 'Content');
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            });
+        });
+
+        // Save selected libraries to backend
+        async function saveSelectedLibraries() {
+            try {
+                const libraryIds = selectedLibraries.map(lib => lib.id);
+                const response = await fetch('/api/select-libraries', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ libraries: libraryIds })
+                });
+                
+                if (!response.ok) {
+                    console.error('Failed to save selected libraries');
+                }
+            } catch (error) {
+                console.error('Error saving selected libraries:', error);
+            }
+        }
+
+        // Load selected libraries on page load
+        async function loadSelectedLibraries() {
+            try {
+                const response = await fetch('/api/selected-libraries');
+                if (response.ok) {
+                    const data = await response.json();
+                    selectedLibraries = [];
+                    
+                    data.libraries.forEach(id => {
+                        // Find the library in our parsed data
+                        for (const type of ['cpi', 'cal']) {
+                            for (const [category, libraries] of Object.entries(libraryData[type])) {
+                                if (libraries[id]) {
+                                    selectedLibraries.push({
+                                        id: id,
+                                        category: category,
+                                        title: libraries[id]
+                                    });
+                                    
+                                    // Update checkbox state
+                                    const checkbox = document.querySelector(`[data-library-id="${id}"] input`);
+                                    if (checkbox) {
+                                        checkbox.checked = true;
+                                    }
+                                    
+                                    // Update library item visual state
+                                    const libraryItem = document.querySelector(`[data-library-id="${id}"]`);
+                                    if (libraryItem) {
+                                        libraryItem.classList.add('selected');
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                    
+                    updateSelectedDisplay();
+                }
+            } catch (error) {
+                console.error('Error loading selected libraries:', error);
+            }
+        }
+
+        // Initialize toggle log buttons
+        document.querySelectorAll('.toggle-log').forEach(button => {
+            button.addEventListener('click', function() {
+                const logContainer = this.nextElementSibling;
+                if (logContainer.style.display === 'block') {
+                    logContainer.style.display = 'none';
+                    this.textContent = 'Show Logs';
+                } else {
+                    logContainer.style.display = 'block';
+                    this.textContent = 'Hide Logs';
+                }
+            });
+        });
+
+        // Update button state based on application status
+        function updateButtonState(status) {
+            appState = status;
+            console.log(`Updating button state to: ${status}`);
+            
+            switch (status) {
+                case 'IDLE':
+                    startButton.disabled = false;
+                    cancelButton.disabled = true;
+                    resetButton.disabled = false; // Allow reset even in idle state
+                    spinner.classList.add('hidden');
+                    break;
+                case 'RUNNING':
+                    startButton.disabled = true;
+                    cancelButton.disabled = false;
+                    resetButton.disabled = true;
+                    spinner.classList.remove('hidden');
+                    break;
+                case 'CANCELED':
+                    startButton.disabled = false;
+                    cancelButton.disabled = true;
+                    resetButton.disabled = false;
+                    spinner.classList.add('hidden');
+                    break;
+                case 'FINISHED':
+                    startButton.disabled = false;
+                    cancelButton.disabled = true;
+                    resetButton.disabled = false;
+                    spinner.classList.add('hidden');
+                    break;
+            }
+        }
+
+        // Update stage status
+        function updateStageStatus(stageId, status, message = null) {
+            const stageBlock = document.getElementById(stageId);
+            if (!stageBlock) return;
+
+            const statusElement = stageBlock.querySelector('.stage-status');
+            
+            // Remove all status classes
+            statusElement.classList.remove('running', 'completed', 'error');
+            stageBlock.classList.remove('active', 'completed', 'error');
+            
+            switch (status) {
+                case 'running':
+                    statusElement.textContent = 'Running';
+                    statusElement.classList.add('running');
+                    stageBlock.classList.add('active');
+                    break;
+                case 'completed':
+                    statusElement.textContent = 'Completed';
+                    statusElement.classList.add('completed');
+                    stageBlock.classList.add('completed');
+                    break;
+                case 'error':
+                    statusElement.textContent = 'Error';
+                    statusElement.classList.add('error');
+                    stageBlock.classList.add('error');
+                    break;
+                default:
+                    statusElement.textContent = 'Pending';
+            }
+
+            if (message) {
+                const summaryElement = stageBlock.querySelector('.summary');
+                if (summaryElement) {
+                    summaryElement.textContent = message;
+                }
+            }
+        }
+
+        // Handle event stream messages
+        function handleEventStreamMessage(data) {
+            if (!data) return;
+            
+            // Handle special event types
+            if (data.type === 'connection' || data.type === 'heartbeat') {
+                console.log(`Event stream: ${data.type} - ${data.payload}`);
+                return;
+            }
+            
+            // Handle system events
+            if (data.stage === 'system') {
+                if (data.type === 'process_status') {
+                    console.log(`Process status changed to: ${data.payload}`);
+                    updateButtonState(data.payload.toUpperCase());
+                    return;
+                } else if (data.type === 'reset') {
+                    console.log('System reset event received');
+                    showNotification('Environment reset successfully!');
+                    return;
+                }
+            }
+            
+            if (!data.stage) return;
+            
+            const stageBlock = document.getElementById(data.stage);
+            if (!stageBlock) return;
+            
+            console.log(`Event received: ${data.stage} - ${data.type} - ${data.payload}`);
+            
+            // Update current active stage
+            if (data.type === 'status' && data.payload === 'running') {
+                // Remove active class from previous stage
+                document.querySelectorAll('.stage-block.active').forEach(block => {
+                    if (block.id !== data.stage) {
+                        block.classList.remove('active');
+                    }
+                });
+                
+                currentStage = data.stage;
+                stageBlock.classList.add('active');
+            }
+            
+            // Handle different message types
+            switch (data.type) {
+                case 'status':
+                    updateStageStatus(data.stage, data.payload);
+                    break;
+                    
+                case 'summary':
+                    const summaryElement = stageBlock.querySelector('.summary');
+                    if (summaryElement) {
+                        summaryElement.textContent = data.payload;
+                    }
+                    break;
+                    
+                case 'log':
+                    const logContainer = stageBlock.querySelector('.full-log');
+                    if (logContainer) {
+                        // Append the log message
+                        const logEntry = document.createElement('div');
+                        logEntry.textContent = data.payload;
+                        logContainer.appendChild(logEntry);
+                        
+                        // Auto-scroll to bottom
+                        logContainer.scrollTop = logContainer.scrollHeight;
+                    }
+                    break;
+                    
+                case 'report_link':
+                    try {
+                        const reportLinks = JSON.parse(data.payload);
+                        const reportButtonsContainer = stageBlock.querySelector('.report-buttons');
+                        
+                        if (reportButtonsContainer && reportLinks) {
+                            // Clear existing links
+                            reportButtonsContainer.innerHTML = '';
+                            
+                            // Add report link
+                            if (reportLinks.report) {
+                                const reportLink = document.createElement('a');
+                                reportLink.href = reportLinks.report;
+                                reportLink.target = '_blank';
+                                reportLink.textContent = 'View Test Report';
+                                reportButtonsContainer.appendChild(reportLink);
+                            }
+                            
+                            // Add log link
+                            if (reportLinks.log) {
+                                const logLink = document.createElement('a');
+                                logLink.href = reportLinks.log;
+                                logLink.target = '_blank';
+                                logLink.textContent = 'View Test Log';
+                                reportButtonsContainer.appendChild(logLink);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error parsing report links:', e);
+                    }
+                    break;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, duration = 3000) {
+            // Update message
+            notification.textContent = message;
+            
+            // Remove hidden class and add show class
+            notification.classList.remove('hidden');
+            
+            // Small delay to ensure transition works
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Hide after duration
+            setTimeout(() => {
+                notification.classList.remove('show');
+                
+                // After transition completes, hide completely
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 300);
+            }, duration);
+        }
+        
+        // Connect to event stream
+        function connectEventStream() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            console.log('Connecting to event stream...');
+            eventSource = new EventSource('/stream');
+            
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleEventStreamMessage(data);
+                } catch (e) {
+                    console.error('Error parsing event data:', e);
+                }
+            };
+            
+            eventSource.onerror = function(error) {
+                console.error('EventSource failed:', error);
+                eventSource.close();
+                console.log('Reconnecting in 3 seconds...');
+                setTimeout(connectEventStream, 3000);
+            };
+            
+            eventSource.onopen = function() {
+                console.log('EventSource connection established');
+            };
+        }
+
+        // API calls
+        async function apiCall(endpoint, method = 'POST') {
+            try {
+                const response = await fetch(endpoint, { method });
+                return await response.json();
+            } catch (error) {
+                console.error(`Error calling ${endpoint}:`, error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Button event listeners
+        startButton.addEventListener('click', async () => {
+            // Validate selection based on mode
+            if (upliftMode === 'adaptation_pod') {
+                if (selectedAdaptationModules.length === 0) {
+                    alert('Please select at least one adaptation pod module group to uplift.');
+                    return;
+                }
+            } else if (upliftMode === 'jdk') {
+                if (!selectedLibraries || selectedLibraries.length === 0) {
+                    alert('Please select at least one library to uplift.');
+                    return;
+                }
+            }
+            
+            updateButtonState('RUNNING');
+            
+            // Prepare the request payload based on mode
+            let endpoint = '/start';
+            let payload = {
+                mode: upliftMode
+            };
+            
+            if (upliftMode === 'adaptation_pod') {
+                payload.selected_modules = selectedAdaptationModules;
+            } else {
+                payload.selected_libraries = selectedLibraries.map(lib => lib.id);
+            }
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    updateButtonState('IDLE');
+                    alert(`Failed to start process: ${result.error}`);
+                }
+            } catch (error) {
+                updateButtonState('IDLE');
+                alert(`Failed to start process: ${error.message}`);
+            }
+        });
+
+        cancelButton.addEventListener('click', async () => {
+            const result = await apiCall('/cancel');
+            if (result.success) {
+                updateButtonState('CANCELED');
+            } else {
+                alert(`Failed to cancel process: ${result.error}`);
+            }
+        });
+
+        resetButton.addEventListener('click', async () => {
+            // Disable the reset button while processing
+            resetButton.disabled = true;
+            resetButton.textContent = 'Resetting...';
+            
+            const result = await apiCall('/reset');
+            if (result.success) {
+                // Reset UI
+                updateButtonState('IDLE');
+                currentStage = null;
+                
+                // Show notification
+                showNotification('Environment reset successfully!');
+                
+                // Restore button text
+                resetButton.textContent = 'Reset Environment';
+                
+                // Reset all stage blocks
+                stageBlocks.forEach(block => {
+                    block.classList.remove('active', 'completed', 'error');
+                    const statusElement = block.querySelector('.stage-status');
+                    statusElement.textContent = 'Pending';
+                    statusElement.classList.remove('running', 'completed', 'error');
+                    
+                    const summaryElement = block.querySelector('.summary');
+                    if (summaryElement) {
+                        const stageId = block.id;
+                        switch (stageId) {
+                            case 'baseline_tests':
+                                summaryElement.textContent = 'Waiting to run baseline tests on production environment ';
+                                break;
+                            case 'uplifting_essvt':
+                                summaryElement.textContent = 'Waiting to uplift ESSVT test code to target environment...';
+                                break;
+                            case 'essvt_uplifted_tests':
+                                summaryElement.textContent = 'Waiting to run uplifted test cases against original source code...';
+                                break;
+                            case 'uplifting_source':
+                                summaryElement.textContent = 'Waiting to uplift source code to target environment...';
+                                break;
+                            case 'final_tests':
+                                summaryElement.textContent = 'Waiting to run final tests with both uplifted test cases and source code...';
+                                break;
+                        }
+                    }
+                    
+                    // Clear log containers
+                    const logContainer = block.querySelector('.full-log');
+                    if (logContainer) {
+                        logContainer.innerHTML = '';
+                        logContainer.style.display = 'none';
+                    }
+                    
+                    // Clear report buttons
+                    const reportButtonsContainer = block.querySelector('.report-buttons');
+                    if (reportButtonsContainer) {
+                        reportButtonsContainer.innerHTML = '';
+                    }
+                });
+            } else {
+                // Show error notification instead of alert
+                showNotification(`Failed to reset environment: ${result.error}`, 5000);
+                // Restore button text
+                resetButton.textContent = 'Reset Environment';
+            }
+            
+            // Re-enable the button
+            resetButton.disabled = false;
+        });
+
+        // Preview prompt button click
+        document.getElementById('previewPromptBtn').addEventListener('click', async function() {
+            const modal = document.getElementById('promptModal');
+            modal.style.display = 'block';
+            
+            // Get current form values
+            const codeTextarea = document.querySelector('textarea[placeholder*="Java code"]');
+            const targetJdkSelect = document.querySelector('select'); // Assuming you have a JDK select
+            
+            const currentCode = codeTextarea ? codeTextarea.value : '// No code entered yet';
+            const currentJdk = targetJdkSelect ? targetJdkSelect.value : '17';
+            
+            try {
+                const response = await fetch('/api/preview-prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: currentCode,
+                        findings: 'Sample modernizer findings',
+                        target_jdk: currentJdk
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update statistics
+                    document.getElementById('promptLength').textContent = data.prompt_length.toLocaleString();
+                    document.getElementById('ragContextLength').textContent = data.rag_context_length.toLocaleString();
+                    document.getElementById('selectedLibrariesCount').textContent = data.selected_libraries ? data.selected_libraries.length : 0;
+                    document.getElementById('targetJdk').textContent = data.target_jdk;
+                    
+                    // Update RAG context preview
+                    document.getElementById('ragContextPreview').textContent = data.rag_context || 'No RAG context retrieved';
+                    
+                    // Update full prompt preview
+                    document.getElementById('fullPromptPreview').textContent = data.prompt;
+                } else {
+                    document.getElementById('ragContextPreview').textContent = 'Error: ' + data.error;
+                    document.getElementById('fullPromptPreview').textContent = 'Error: ' + data.error;
+                }
+            } catch (error) {
+                document.getElementById('ragContextPreview').textContent = 'Error: ' + error.message;
+                document.getElementById('fullPromptPreview').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Close modal functionality
+        document.querySelector('.close').addEventListener('click', function() {
+            document.getElementById('promptModal').style.display = 'none';
+        });
+
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('promptModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Initialize the UI
+        updateButtonState('IDLE');
+        connectEventStream();
+        
+        // Initialize uplift mode handlers with a small delay to ensure DOM is ready
+        setTimeout(() => {
+            initializeUpliftModeHandlers();
+        }, 100);
+        
+        // Load libraries on page load
+        loadLibraries().then(() => {
+            // Load selected libraries after libraries are loaded
+            setTimeout(() => {
+                loadSelectedLibraries();
+            }, 100);
+        });
+        
+        // Toggle description visibility
+        // Description toggle functionality
+        const toggleDescriptionButton = document.getElementById('toggleDescription');
+        const descriptionContent = document.getElementById('descriptionContent');
+        const descriptionArrow = document.getElementById('descriptionArrow');
+
+        toggleDescriptionButton.addEventListener('click', () => {
+            const isHidden = descriptionContent.classList.contains('hidden');
+            descriptionContent.classList.toggle('hidden', !isHidden);
+            
+            if (isHidden) {
+                toggleDescriptionButton.firstChild.textContent = 'Collapse Description ';
+                descriptionArrow.innerHTML = '&#9650;';
+            } else {
+                toggleDescriptionButton.firstChild.textContent = 'Expand Description ';
+                descriptionArrow.innerHTML = '&#9660;';
+            }
+        });
+    </script>
+</body>
+</html>

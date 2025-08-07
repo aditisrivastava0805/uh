@@ -1,0 +1,5 @@
+{
+    "max_percentage": 90,
+    "check_percentage": 80,
+    "directory": "/home/nfs/"
+}

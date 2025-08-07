@@ -1,0 +1,29 @@
+{
+  "kafka": {
+    "clusters": [
+      {
+        "name": "polaris_cluster",
+        "addresses": [
+          "sh-kafka-n1-pol.t-mobile.com",
+          "sh-kafka-n2-pol.t-mobile.com",
+          "sh-kafka-n3-pol.t-mobile.com",
+          "sh-kafka-n4-pol.t-mobile.com",
+          "sh-kafka-n5-pol.t-mobile.com"
+        ]
+      },
+      {
+        "name": "titan_cluster",
+        "addresses": [
+          "sh-kafka-n1-ttn.t-mobile.com",
+          "sh-kafka-n2-ttn.t-mobile.com",
+          "sh-kafka-n3-ttn.t-mobile.com",
+          "sh-kafka-n4-ttn.t-mobile.com",
+          "sh-kafka-n5-ttn.t-mobile.com"
+        ]
+      }
+    ],
+    "port": 9093,
+    "message_topic": "validation.svc_ss_incoming_msgs",
+    "timeout_secs": 3
+  }
+}

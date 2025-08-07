@@ -1,0 +1,28 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "root": {
+      "level": "NOTSET",
+      "handlers": [
+        "rotating_file_handler"
+      ]
+    },
+    "handlers": {
+      "rotating_file_handler": {
+        "level": "INFO",
+        "formatter": "detail",
+        "class": "logging.handlers.TimedRotatingFileHandler",
+        "filename": "{app-path}/log/run.log",
+        "when": "midnight",
+        "backupCount": 10
+      }
+    },
+    "formatters": {
+      "detail": {
+        "format": "%(asctime)s - %(levelname)5s - %(name)-25s - %(funcName)30s():%(lineno)-4d - %(message)s"
+      },
+      "brief": {
+        "format": "%(levelname)5s - %(message)s"
+      }
+    }
+  }

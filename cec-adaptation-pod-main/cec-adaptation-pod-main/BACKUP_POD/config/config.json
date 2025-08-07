@@ -1,0 +1,45 @@
+{
+  "backup_path": "/application/ec/bam/adaptationPodScriptsBackup/",
+  "backup_filename": "adaptation_scripts",
+  "script_path": "/mount/volumes/script/",
+  "skip_directories": ["archive", "log", "output", "__pycache__"],
+  "backup_server_sftp_config":
+  {
+    "auccdec|auccdcaf":
+    {
+        "backup_server_ip": "10.246.100.212",
+        "backup_server_user": "bambkpadmin",
+        "backup_server_password": "P4ssw0rd"
+    },
+    "tiaccdec|tiaccdcaf":
+    {
+        "backup_server_ip": "10.247.149.20",
+        "backup_server_user": "bambkpadmin",
+        "backup_server_password": "P4ssw0rd"
+    },
+    "syccdec|syccdcaf":
+    {
+        "backup_server_ip": "10.246.168.20",
+        "backup_server_user": "bambkpadmin",
+        "backup_server_password": "P4ssw0rd"
+    },
+    "chccdec|chccdcaf":
+    {
+        "backup_server_ip": "10.246.212.207",
+        "backup_server_user": "bambkpadmin",
+        "backup_server_password": "P4ssw0rd"
+    },
+    "poaccdec|poaccdcaf":
+    {
+        "backup_server_ip": "10.247.37.20",
+        "backup_server_user": "bambkpadmin",
+        "backup_server_password": "P4ssw0rd"
+    },
+    "riccdec|riccdcaf":
+    {
+        "backup_server_ip": "10.246.208.206",
+        "backup_server_user": "bambkpadmin",
+        "backup_server_password": "P4ssw0rd"
+    }
+  }
+}

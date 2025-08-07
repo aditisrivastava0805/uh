@@ -1,0 +1,33 @@
+{
+  "wait_to_start_secs": 10,
+  "pod": "af",
+  "pod_container": "af",
+  "max_processes": 3,
+  "whitelist_pod_enable": "false",
+  "whitelist_pods": [],
+  "blacklist_pods": [],
+  "main_af_commands":{
+    "get_release_names_from_helm": "helm ls -a -n {namespace}| grep caf | egrep -v assistant | awk '{print $1}'",
+    "af_main_from_helm": "helm get all {releaseName} -n {namespace}| grep -w passiveMain -A 1 | tail -n 1",
+    "af_passive_type": "helm get values -n {namespace} -a {releaseName} -o yaml  | grep -i  \"AFtype\"",
+    "af_passive_enabled": "helm get values -n {namespace} -a {releaseName} -o yaml  | grep -A 1  \"passiveMain:\" | tail -n 1",
+    "get_pod_names": "kubectl get pod -n {namespace}| grep caf | grep -v assistant | awk '{print $1}'"
+  },
+  "kafka_message_template": {
+    "category": "CORE - IN",
+    "platform": "ERICSSON_AF",
+    "source_owner": "Tier2_CC",
+    "@table": [
+      "kpi_name",
+      "kpi_value",
+      "kpi_result"
+    ],
+    "ref_id": "{random}",
+    "kpi_last_updated_date": null,
+    "kpi_source": null,
+    "config_item": null,
+    "kpi_info": null,
+    "src_modified_dt": null,
+    "local_modified_dt": null
+  }
+}

@@ -1,0 +1,56 @@
+[access_server:children]
+access_server_caf
+access_server_ec
+access_server_cta
+access_server_cta02
+
+[access_server:vars]
+ansible_user=SVC_PRD_ansible
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ProxyCommand="ssh -W %h:%p -q SVC_PRD_cicd_pipeline@10.247.32.124"'
+
+[access_server_caf]
+CAF_POBSTGcCCDAS ansible_host=10.247.48.145 kube_user=caf01stgadminca
+CAF_RIcCCDAS ansible_host=10.246.208.203 kube_user=caf01miniadminca
+CAF_TIAcCCDAS01 ansible_host=10.247.149.17 kube_user=caf01adminca
+CAF_SYcCCDAS01 ansible_host=10.246.168.17 kube_user=caf01adminca
+CAF_CHcCCDAS01 ansible_host=10.246.212.204 kube_user=caf01adminca
+CAF_POAcCCDAS01 ansible_host=10.247.37.17 kube_user=caf01adminca
+CAF_RIcCCDAS01 ansible_host=10.246.208.203 kube_user=caf01adminca
+CAF_AUcCCDAS01 ansible_host=10.246.100.209 kube_user=caf01adminca
+STG_CAF_AUcCCDAS01 ansible_host=10.246.100.209 kube_user=caf01miniadminca
+STG_CAF_RIcCCDAS01 ansible_host=10.246.208.203 kube_user=caf01miniadminca
+
+[access_server_caf:vars]
+namespace=tmo-caf-adaptation
+
+[access_server_ec]
+POAcCCDAS ansible_host=10.247.37.17 kube_user=ec01adminca
+POBcCCDAS ansible_host=10.247.48.204 kube_user=ec01adminca
+TIAcCCDAS ansible_host=10.247.149.17 kube_user=ec01adminca
+TIBcCCDAS ansible_host=10.247.182.17 kube_user=ec01adminca
+SYcCCDAS ansible_host=10.246.168.17 kube_user=ec01adminca
+CHcCCDAS01 ansible_host=10.246.212.204 kube_user=ec01adaptadmca
+AUcCCDAS01 ansible_host=10.246.100.209 kube_user=ec01adaptadmca
+POcCCDAS01 ansible_host=10.247.37.17 kube_user=ec01adaptadmca
+RIcCCDAS01 ansible_host=10.246.208.203 kube_user=ec01adaptadmca
+
+[access_server_ec:vars]
+namespace=chf-ec-apps
+
+[access_server_cta]
+CTA_POBSTGcCCDAS01 ansible_host=10.247.48.143 kube_user=cta01adminca
+CTA_EC_POBSTGcCCDAS01 ansible_host=10.247.48.145 kube_user=ec01adminca
+
+[access_server_cta:vars]
+namespace=tmo-ec-adaptation
+
+[access_server_cta02]
+CTA_titan02 ansible_host=10.247.182.17 kube_user=cta02adminca
+CTA_charlotte02 ansible_host=10.246.212.204 kube_user=cta02adminca
+CTA_syosset02 ansible_host=10.246.168.17 kube_user=cta02adminca
+CTA_riverside02 ansible_host=10.246.208.203 kube_user=cta02adminca
+CTA_polaris02 ansible_host=10.247.48.202 kube_user=cta02adminca
+CTA_aurora02 ansible_host=10.246.100.209 kube_user=cta02adminca
+
+[access_server_cta02:vars]
+namespace=tmo-ec-adaptation

@@ -1,0 +1,353 @@
+{
+    "CAL Store - IMS": {
+      "EN/LZN 765 0164/9 P35C": "vMTAS 1.36.0 (LSV351), Ericsson Internal Support",
+      "EN/LZN 745 0028 R43A": "vBGF 1.42.0, Ericsson Internal Support",
+      "EN/LZN 765 0173/2 R28A": "vSBG 2.27.0, Ericsson Internal Support",
+      "EN/LZN 745 0036/2 R6A": "vWA 2.5.0, Ericsson Internal Support",
+      "EN/LZN 765 0210 R32A": "vCSCF 1.30.0, Ericsson Internal Support",
+      "EN/LZN 768 0180/7 R1A": "Virtual IMS 2.21 for CNIS with CEE",
+      "EN/LZN 765 0236 R26A": "vEMe 1.25.0, Ericsson Internal Support",
+      "EN/LZN 745 0029/2 R34A": "vSBC 2.33.0, Ericsson Internal Support",
+      "EN/LZN 768 0180/5 R17B": "Virtual IMS 2.21 for Ericsson NFVI (CEE/SDI)",
+      "EN/LZN 745 0026 R25A": "vMRF 1.24.0, Ericsson Internal Support",
+      "EN/LZN 765 0268/2 R19A": "vAFG 2.18.0, Ericsson Internal Support",
+      "EN/LZN 745 0038/2 R15A": "vNSDS 2.14.0, Ericsson Internal Support",
+      "EN/LZN 765 0041/6 R25A/1": "MMAS 6.24.1, Ericsson Internal Support",
+      "EN/LZN 768 0180/5 R18A": "Virtual IMS 2.22 for Ericsson NFVI (CEE/SDI)",
+      "EN/LZN 768 0182/1 R25A": "IMCN 2.21, Ericsson Internal Support"
+    },
+    "CAL Store - MSC": {
+      "EN/LZN 716 0539/1 R2A": "MSC-S 18.7, Ericsson Internal Support",
+      "EN/LZN 716 0523 R5A": "MSC-S 18.6, Ericsson Internal Support"
+    },
+    "CPI Store - Ericsson Charging 22.11": {
+      "EN/LZN 741 0191 R32A": "Charging Compound 1, External Interface Specifications",
+      "EN/LZN 741 0339 R27C": "CAF 1.19.0, Virtualized",
+      "EN/LZN 795 0085 R2E": "CAF 1.19.0, Cloud Native",
+      "EN/LZN 741 0076 R32A": "Charging Control Node (CCN) 6.17.0",
+      "EN/LZN 741 0220 R1AT": "Voucher Server (VS) 5.0",
+      "EN/LZN 741 0126 R28H": "Service Data Point (SDP) 5",
+      "EN/LZN 741 0171 R32A": "Online Charging Control (OCC) 3.21.0, CPI",
+      "EN/LZN 741 0129 R26A": "Account Finder (AF) 3.0",
+      "EN/LZN 795 0068 R1AJ": "BOS Application Manager (BAM) 3.46.1",
+      "EN/LZN 741 0130 R27A": "Account Information and Refill (AIR) 4.0",
+      "EN/LZN 741 0229/1 R13T": "Charging data Reporting System (CRS) 9.16.0, CPI",
+      "EN/LZN 741 0160/7 R9E": "Ericsson Charging - Network Management Toolkit 6.4.0, CPI",
+      "EN/LZN 741 0203 R24A": "Ericsson Customer Management System (ECMS) 6.4.0",
+      "EN/LZN 741 0241 R23A": "Ericsson Charging 22.11",
+      "EN/LZN 741 0147 R7A": "SS7 for SDP and AIR"
+    },
+    "CPI Store - Radio": {
+      "EN/LZN 712 0476/11 R30C": "Ericsson R6000 25 Q1",
+      "EN/LZN 760 5043 R63A": "Ericsson Radio System Hardware - Antenna System, Enclosure, Integrated Site Solutions, Network Synchronization, Power, Radio, RAN Compute and RBS",
+      "EN/LZN 793 1020 R50B": "Baseband Radio Node MTR 25.11",
+      "EN/LZN 708 0920 R1HS": "Operation and Maintenance Backup Solution (OMBS_25.2.0) (18 03 2025)"
+    },
+    "CPI Store - Ericsson Charging 22.9": {
+      "EN/LZN 741 0339 R25D": "CAF 1.15.0",
+      "EN/LZN 741 0076 R29A": "Charging Control Node (CCN) 6.14.0",
+      "EN/LZN 741 0193 R31A": "Charging Compound 1.30.0",
+      "EN/LZN 741 0191 R30A": "Charging Compound 1, External Interface Specifications",
+      "EN/LZN 741 0129 R24A": "Account Finder (AF) 3.0",
+      "EN/LZN 741 0160/7 R9C": "Ericsson Charging - Network Management Toolkit 6.2, CPI",
+      "EN/LZN 795 0068 R1H": "BOS Application Manager (BAM) 3.34.1",
+      "EN/LZN 741 0171 R30A": "Online Charging Control (OCC) 3.19.0, CPI",
+      "EN/LZN 741 0130 R25A": "Account Information and Refill (AIR) 4.0",
+      "EN/LZN 741 0126 R28E": "Service Data Point (SDP) 5",
+      "EN/LZN 741 0229/1 R13L": "Charging data Reporting System (CRS) 9.14, CPI",
+      "EN/LZN 741 0147 R7A": "SS7 for SDP and AIR",
+      "EN/LZN 741 0203 R22A": "Ericsson Customer Management System (ECMS) 6.2.0",
+      "EN/LZN 741 0241 R21A": "Ericsson Charging 22.9"
+    },
+    "CAL Store - Ericsson CCD": {
+      "EN/LZN 792 0009/2 R34B": "Ericsson Cloud Container Distribution 2.31.1 Internal Support Library",
+      "EN/LZN 792 0009/2 R32F": "Ericsson Cloud Container Distribution 2.29.5 Internal Support Library",
+      "EN/LZN 792 0009/2 R31F": "Ericsson Cloud Container Distribution 2.28.5 Internal Support Library"
+    },
+    "CAL Store - Cloud Core": {
+      "EN/LZN 702 0520/1 R116A": "Cloud Core Exposure Server (CCES) 1.18 Drop 115, Ericsson Internal Support",
+      "EN/LZN 780 0037/3 R9A": "Ericsson Software Defined Infrastructure (Ericsson SDI) 3.8, Support (Update 2)",
+      "EN/LZN 703 0319 R11A": "Ericsson Expert Analytics (EEA) 4.10, Support",
+      "EN/LZN 702 0562/1 R18A": "Cloud Core Exposure Server (CCES) 1.17, Ericsson Internal Support",
+      "EN/LZN 702 0559/1 R10C": "Cloud Core Subscription Manager (CCSM) 1.9.2, Ericsson Internal Support",
+      "EN/LZN 702 0506/1 R103A": "Cloud Core Policy Controller (CCPC) Drop 102",
+      "EN/LZN 780 0035/2 R19A": "Software Defined Storage (SDS) 1.20, Support",
+      "EN/LZN 707 0321 R18B": "Secure Entitlement Server (SES) 22.3.41, Ericsson Internal Support",
+      "EN/LZN 702 0555/1 R13A": "Cloud Core Data-Storage Manager (CCDM) 1.12, Ericsson Internal Support",
+      "EN/LZN 702 0554/1 R13A": "Cloud Core Data-Storage Manager (CCDM) 1.12",
+      "EN/LZN 780 0037/3 R7C": "Ericsson Software Defined Infrastructure (Ericsson SDI) 3.6.2, Support",
+      "EN/LZN 780 0040 R9A": "Ericsson Remote Equipment Manager 3.8, Support (Update 2)",
+      "EN/LZN 706 0072 R7K": "NFVI Solution 7.9, Support",
+      "EN/LZN 706 0072 R7J": "NFVI Solution 7.8, Support",
+      "EN/LZN 706 0093 R1U": "CNIS Solution 1.15, Support (Updated)"
+    },
+    "CAL Store - Ericsson Charging 22.8, Support": {
+      "EN/LZN 741 0194 R30A": "Charging Compound 1.29.0, Support",
+      "EN/LZN 741 0077 R28A": "Charging Control Node (CCN) 6.13.0, Support",
+      "EN/LZN 741 0192 R28A": "Charging Compound 1, Internal Interface Specifications, Support",
+      "EN/LZN 741 0127 R27B": "Service Data Point (SDP) 5, Support",
+      "EN/LZN 741 0340 R24B": "CAF 1.14.0, Ericsson Internal Support",
+      "EN/LZN 741 0221 R1AM": "Voucher Server 5.0, Support",
+      "EN/LZN 741 0172 R29A": "Online Charging Control (OCC) 3.18.0, Support",
+      "EN/LZN 741 0148 R7A": "SS7 for SDP and AIR, Support",
+      "EN/LZN 741 0230/1 R13J": "Charging data Reporting System (CRS) 9.13, Support",
+      "EN/LZN 741 0133 R23A": "Account Information and Refill (AIR) 4.0, Support",
+      "EN/LZN 741 0213 R21A": "Ericsson Customer Management System (ECMS) 6.1.0",
+      "EN/LZN 741 0160/8 R9B": "Ericsson Charging - Network Management Toolkit 6.1, Support",
+      "EN/LZN 741 0242 R20B": "Ericsson Charging 22.8, Support",
+      "EN/LZN 741 0132 R21A": "Account Finder (AF) 3.0, Support"
+    },
+    "CPI Store - PCC": {
+      "EN/LZN 704 0261 R37C": "Packet Core Controller (PCC) 1.36",
+      "EN/LZN 704 0261/1 R37C": "Packet Core Controller (PCC) 1.36, Ericsson Internal Support"
+    },
+    "CAL Store - Ericsson Charging 22.11, Support": {
+      "EN/LZN 741 0340 R27B": "CAF 1.19.0, Virtualized Ericsson Internal Support",
+      "EN/LZN 741 0077 R32A": "Charging Control Node (CCN) 6.17.0, Support",
+      "EN/LZN 741 0192 R31A": "Charging Compound 1, Internal Interface Specifications, Support",
+      "EN/LZN 795 0086 R2B": "CAF 1.19.0, Cloud Native Ericsson Internal Support",
+      "EN/LZN 741 0148 R7A": "SS7 for SDP and AIR, Support",
+      "EN/LZN 741 0194 R33A": "Charging Compound 4.40.0, Support",
+      "EN/LZN 741 0221 R1AT": "Voucher Server 5.0, Support",
+      "EN/LZN 741 0172 R32A": "Online Charging Control (OCC) 3.21.0, Support",
+      "EN/LZN 741 0127 R27G": "Service Data Point (SDP) 5, Support",
+      "EN/LZN 741 0133 R27A": "Account Information and Refill (AIR) 4.0, Support",
+      "EN/LZN 741 0132 R25A": "Account Finder (AF) 3.0, Support",
+      "EN/LZN 741 0213 R24A": "Ericsson Customer Management System (ECMS) 6.4.0",
+      "EN/LZN 741 0160/8 R9E": "Ericsson Charging - Network Management Toolkit 6.4.0, Support",
+      "EN/LZN 741 0230/1 R13T": "Charging data Reporting System (CRS) 9.16.0, Support",
+      "EN/LZN 741 0242 R23A": "Ericsson Charging 22.11, Support"
+    },
+    "CAL Store - Ericsson Orchestrator": {
+      "EN/LZN 703 0292 R92A": "Ericsson Orchestrator EVNFM 23.5.0 Support Product Information",
+      "EN/LZN 703 0279 R88B": "Ericsson Orchestrator Cloud Native 23.4.0 Rebuild 1 Support Product Information",
+      "EN/LZN 703 0283 R100A": "Ericsson Orchestrator Cloud Manager 23.4.6",
+      "EN/LZN 703 0278 R98A": "Ericsson Orchestrator Cloud Native 23.6.2",
+      "EN/LZN 703 0279 R92A": "Ericsson Orchestrator Cloud Native 23.5.0 Support Product Information",
+      "EN/LZN 703 0284 R92A": "Ericsson Orchestrator Cloud Manager 23.4.4 Support Product Information",
+      "EN/LZN 703 0289 R98A": "Ericsson Orchestrator EVNFM 23.6.2",
+      "EN/LZN 703 0278/1 R100A": "Ericsson Orchestrator Cloud Native 23.4.6",
+      "EN/LZN 703 0284 R88A": "Ericsson Orchestrator Cloud Manager 23.4.0 Support Product Information",
+      "EN/LZN 703 0279 R98A": "Ericsson Orchestrator Cloud Native 23.6.2 Support Product Information",
+      "EN/LZN 703 0284 R100A": "Ericsson Orchestrator Cloud Manager 23.4.6 Support Product Information",
+      "EN/LZN 703 0279/1 R100A": "Ericsson Orchestrator Cloud Native 23.4.6 Support Product Information",
+      "EN/LZN 703 0292 R88A": "Ericsson Orchestrator EVNFM 23.4.0 Support Product Information",
+      "EN/LZN 703 0279 R91A": "Ericsson Orchestrator Cloud Native 23.4.3 Support Product Information",
+      "EN/LZN 703 0292 R98A": "Ericsson Orchestrator EVNFM 23.6.2 Support Product Information"
+    },
+    "CAL Store - ENM": {
+      "EN/LZN 703 0221 R1GF": "ENM Installation and Support, AOM 901 151 R1HH",
+      "EN/LZN 703 0221 R5GF": "ENM Installation and Support, AOM 901 151 R1HH, IP3 Rebuild"
+    },
+    "CAL Store - Hyperscale Datacenter System": {
+      "EN/LZN 795 5034/4 R12B": "Ericsson Software Defined Infrastructure (Ericsson SDI) 2.25.1 SLX Based Networking Support",
+      "EN/LZN 795 5034/2 R31B": "Ericsson Software Defined Infrastructure (Ericsson SDI) 2.25.1 Support",
+      "EN/LZN 795 5034/2 R30C": "Ericsson Software Defined Infrastructure (Ericsson SDI) 2.25 Support"
+    },
+    "CPI Store - Ericsson Charging 22.8": {
+      "EN/LZN 741 0191 R28A": "Charging Compound 1, External Interface Specifications",
+      "EN/LZN 741 0339 R21A": "CAF 1.12.0",
+      "EN/LZN 741 0229/1 R13J": "Charging data Reporting System (CRS) 9.13, CPI",
+      "EN/LZN 741 0076 R28A": "Charging Control Node (CCN) 6.13.0",
+      "EN/LZN 741 0126 R28C": "Service Data Point (SDP) 5",
+      "EN/LZN 741 0171 R29A": "Online Charging Control (OCC) 3.18.0, CPI",
+      "EN/LZN 741 0130 R23A": "Account Information and Refill (AIR) 4.0",
+      "EN/LZN 741 0147 R7A": "SS7 for SDP and AIR",
+      "EN/LZN 741 0193 R29A": "Charging Compound 1.28.0",
+      "EN/LZN 741 0160/7 R9B": "Ericsson Charging - Network Management Toolkit 6.1, CPI",
+      "EN/LZN 741 0129 R22A": "Account Finder (AF) 3.0",
+      "EN/LZN 741 0241 R20A": "Ericsson Charging 22.8",
+      "EN/LZN 741 0203 R21A": "Ericsson Customer Management System (ECMS) 6.1.0"
+    },
+    "CAL Store - Ericsson Charging 22.10, Support": {
+      "EN/LZN 741 0077 R30A": "Charging Control Node (CCN) 6.15.0, Support",
+      "EN/LZN 741 0133 R26A": "Account Information and Refill (AIR) 4.0, Support",
+      "EN/LZN 741 0340 R26F": "CAF 1.17.0, Virtualized Ericsson Internal Support",
+      "EN/LZN 741 0192 R30A": "Charging Compound 1, Internal Interface Specifications, Support",
+      "EN/LZN 741 0148 R7A": "SS7 for SDP and AIR, Support",
+      "EN/LZN 795 0086 R1E": "CAF 1.17.0, Cloud Native Ericsson Internal Support",
+      "EN/LZN 741 0230/1 R13S": "Charging data Reporting System (CRS) 9.15.0, Support",
+      "EN/LZN 741 0172 R31A": "Online Charging Control (OCC) 3.20.0, Support",
+      "EN/LZN 741 0127 R27E": "Service Data Point (SDP) 5, Support",
+      "EN/LZN 741 0194 R32A": "Charging Compound 4.39.0, Support",
+      "EN/LZN 741 0221 R1AS": "Voucher Server 5.0, Support",
+      "EN/LZN 741 0132 R24A": "Account Finder (AF) 3.0, Support",
+      "EN/LZN 741 0160/8 R9D": "Ericsson Charging - Network Management Toolkit 6.3.0, Support",
+      "EN/LZN 741 0213 R23A": "Ericsson Customer Management System (ECMS) 6.3.0",
+      "EN/LZN 741 0242 R22A": "Ericsson Charging 22.10, Support"
+    },
+    "CAL Store - Ericsson Charging 22.9, Support": {
+      "EN/LZN 741 0077 R29A": "Charging Control Node (CCN) 6.14.0, Support",
+      "EN/LZN 741 0192 R29A": "Charging Compound 1, Internal Interface Specifications, Support",
+      "EN/LZN 741 0148 R7A": "SS7 for SDP and AIR, Support",
+      "EN/LZN 741 0127 R27D": "Service Data Point (SDP) 5, Support",
+      "EN/LZN 741 0172 R30A": "Online Charging Control (OCC) 3.19.0, Support",
+      "EN/LZN 741 0194 R31A": "Charging Compound 1.30.0, Support",
+      "EN/LZN 741 0230/1 R13L": "Charging data Reporting System (CRS) 9.14, Support",
+      "EN/LZN 741 0340 R25D": "CAF 1.15.0, Ericsson Internal Support",
+      "EN/LZN 741 0213 R22A": "Ericsson Customer Management System (ECMS) 6.2.0",
+      "EN/LZN 741 0133 R25A": "Account Information and Refill (AIR) 4.0, Support",
+      "EN/LZN 741 0160/8 R9C": "Ericsson Charging - Network Management Toolkit 6.2, Support",
+      "EN/LZN 741 0221 R1AN": "Voucher Server 5.0, Support",
+      "EN/LZN 741 0132 R23A": "Account Finder (AF) 3.0, Support",
+      "EN/LZN 741 0242 R21A": "Ericsson Charging 22.9, Support"
+    },
+    "CAL Store - CBA": {
+      "EN/LZN 765 0068/7 R2A": "License Manager 7.1, Ericsson Internal Support",
+      "EN/LZN 702 0322/4 R2A": "eVIP 4.1, Ericsson Internal Support",
+      "EN/LZN 702 0414/4 R2A": "C-Diameter 4.1, Ericsson Internal Support",
+      "EN/LZN 702 0372 R2A": "JavaSIP 4.1, Ericsson Internal Support",
+      "EN/LZN 702 0318/5 R2A": "vDicosEE 5.1, Ericsson Internal Support",
+      "EN/LZN 702 0471/2 R2A": "LDE-LINUX 2.1, Ericsson Internal Support",
+      "EN/LZN 702 0329/7 R2A": "SS7 CAF 7.1, Ericsson Internal Support",
+      "EN/LZN 702 0354/5 R2A": "Trace 5.1 , Ericsson Internal Support",
+      "EN/LZN 702 0336 R2A": "JavaOaM 6.1, Ericsson Internal Support",
+      "EN/LZN 702 0419/4 R2A": "CDF 4.1, Ericsson Internal Support",
+      "EN/LZN 702 0281/5 R2A": "LDEwS 5.1, Ericsson Internal Support",
+      "EN/LZN 702 0392/5 R2A": "LEM 5.1, Ericsson Internal Support",
+      "EN/LZN 702 0389/6 R2A": "DBS 6.1, Ericsson Internal Support",
+      "EN/LZN 702 0374/3 R2A": "SEC 3.1, Ericsson Internal Support",
+      "EN/LZN 702 0309/7 R2A": "Core MW 7.1, Ericsson Internal Support",
+      "EN/LZN 765 0041 R2A": "MMAS 7.1, Ericsson Internal Support",
+      "EN/LZN 702 0441/2 R2A": "DX Toolbox 2.1, Ericsson Internal Support"
+    },
+    "CPI Store - Ericsson Charging 22.10": {
+      "EN/LZN 795 0085 R1E": "CAF 1.17.0, Cloud Native",
+      "EN/LZN 741 0191 R31A": "Charging Compound 1, External Interface Specifications",
+      "EN/LZN 741 0126 R28F": "Service Data Point (SDP) 5",
+      "EN/LZN 741 0203 R23A": "Ericsson Customer Management System (ECMS) 6.3.0",
+      "EN/LZN 741 0076 R30A": "Charging Control Node (CCN) 6.15.0",
+      "EN/LZN 741 0339 R26F": "CAF 1.17.0, Virtualized",
+      "EN/LZN 741 0193 R32A": "Charging Compound 4.39.0",
+      "EN/LZN 741 0171 R31A": "Online Charging Control (OCC) 3.20.0, CPI",
+      "EN/LZN 741 0220 R1AS": "Voucher Server (VS) 5.0",
+      "EN/LZN 741 0130 R26A": "Account Information and Refill (AIR) 4.0",
+      "EN/LZN 741 0160/7 R9D": "Ericsson Charging - Network Management Toolkit 6.3.0, CPI",
+      "EN/LZN 741 0229/1 R13S": "Charging data Reporting System (CRS) 9.15.0, CPI",
+      "EN/LZN 795 0068 R1U": "BOS Application Manager (BAM) 3.40.1",
+      "EN/LZN 741 0147 R7A": "SS7 for SDP and AIR",
+      "EN/LZN 741 0129 R25A": "Account Finder (AF) 3.0",
+      "EN/LZN 741 0241 R22A": "Ericsson Charging 22.10"
+    },
+    "CPI Store - LTE RAN, NR": {
+      "EN/LZN 793 1040 R49G": "LTE RAN 25.Q1.1",
+      "EN/LZN 793 1071 R37G": "NR RAN 25.Q1.1"
+    },
+    "CPI Store - CBEV": {
+      "EN/LZN 703 0337 R8A": "Charging and Billing Evolved (CBEV) 23.7, Virtualized",
+      "EN/LZN 704 0243 R177A": "Automated Acceptance Tests (AAT) 2.39"
+    },
+    "CPI Store - ENM": {
+      "EN/LZN 703 0205 R164G": "Ericsson Network Manager, ENM, AOM 901 151 R1GT, IP10",
+      "EN/LZN 703 0215/2 R2D": "Ericsson Adaptive Inventory 16.1.0.1",
+      "EN/LZN 703 0205 R184A": "Ericsson Network Manager, ENM, AOM 901 151 25.5.0"
+    },
+    "CPI Store - Ericsson Operations Manager Cloud Infrastructure (OMC)": {
+      "EN/LZN 733 0010 R17AB": "Radio Dot System (RDS) 25.Q1.1",
+      "EN/LZN 764 0063 R9A": "Ericsson OMC 2.8.0"
+    },
+    "CAL Store - Network Solutions": {
+      "EN/LZN 764 0056/20 R1A": "Network Solutions 24.Q4.0",
+      "EN/LZN 764 0056/19 R1A": "Network Solutions 24.Q3.0",
+      "EN/LZN 764 0056/17 R1A": "Network Solutions 24.Q1.0",
+      "EN/LZN 764 0056/21 R1A": "Network Solutions 25.Q1.0",
+      "EN/LZN 764 0056/22 R1A": "Network Solutions 25.Q2.0"
+    },
+    "CAL Store - NFVI Solution": {
+      "EN/LZN 703 0283 R109A": "Ericsson Orchestrator Cloud Manager 23.4.8",
+      "EN/LZN 764 0063/1 R10A": "Ericsson OMC 2.9.0, Ericsson Internal Support",
+      "EN/LZN 706 0072 R7L": "NFVI Solution 7.10, Support",
+      "EN/LZN 764 0062/1 R11A": "Cloud SDN 8.10 - CEE Integration (NFVI 7.10), Ericsson Internal Support",
+      "EN/LZN 703 0279 R109A": "Ericsson Orchestrator Cloud Native 4.2.0 Support Product Information",
+      "EN/LZN 703 0284 R109A": "Ericsson Orchestrator Cloud Manager 23.4.8 Support Product Information",
+      "EN/LZN 703 0292 R109A": "Ericsson Orchestrator EVNFM 4.2.0 Support Product Information",
+      "EN/LZN 792 0001/13 R14A": "Cloud Execution Environment (CEE) 10.11, Ericsson Internal Support",
+      "EN/LZN 780 0035/2 R20A": "Software Defined Storage (SDS) 1.21, Support",
+      "EN/LZN 703 0289 R109A": "Ericsson Orchestrator EVNFM 4.2.0",
+      "EN/LZN 795 5034/2 R32A": "Ericsson Software Defined Infrastructure (Ericsson SDI) 2.26 Support",
+      "EN/LZN 703 0278 R109A": "Ericsson Orchestrator Cloud Native 4.2.0",
+      "EN/LZN 792 0009/2 R35A": "Ericsson Cloud Container Distribution 2.32.0 Internal Support Library",
+      "EN/LZN 703 0278/1 R109A": "Ericsson Orchestrator Cloud Native 23.4.8",
+      "EN/LZN 703 0279/1 R109A": "Ericsson Orchestrator Cloud Native 23.4.8 Support Product Information"
+    },
+    "CAL Store - CEE": {
+      "EN/LZN 792 0001/13 R13A": "Cloud Execution Environment (CEE) 10.10, Ericsson Internal Support"
+    },
+    "CPI Store - OMBS": {
+      "EN/LZN 705 9066 R13A": "Ericsson Mediation 21.12"
+    },
+    "CAL Store - Mobile Core": {
+      "EN/LZN 702 0448/1 R39B": "Ericsson Home Subscriber Server Front End (HSS-FE) 1.38, Support",
+      "EN/LZN 794 0001/2 R19B": "Signaling Controller (SC) 1.16, Ericsson Internal Support"
+    },
+    "CPI Store - Software Defined Storage (SDS)": {
+      "EN/LZN 780 0035/1 R19A": "Software Defined Storage (SDS) 1.20",
+      "EN/LZN 760 4002 R62A": "Radio"
+    },
+    "CPI Store - Ericsson Mediation": {
+      "EN/LZN 705 9070 R3A": "Ericsson Mediation 24.2"
+    },
+    "CAL Store - CNIS Solution": {
+      "EN/LZN 780 0037/3 R10A": "Ericsson Software Defined Infrastructure (Ericsson SDI), 3.9, Support (Update 2)",
+      "EN/LZN 780 0040 R10A": "Ericsson Remote Equipment Manager 3.9, Support",
+      "EN/LZN 764 0063/1 R10A": "Ericsson OMC 2.9.0, Ericsson Internal Support",
+      "EN/LZN 706 0093 R1V": "CNIS Solution 1.16, Support (Updated)",
+      "EN/LZN 764 0067/1 R11A": "Cloud SDN Switch (CSS), Ericsson Internal Support",
+      "EN/LZN 703 0279 R109A": "Ericsson Orchestrator Cloud Native 4.2.0 Support Product Information",
+      "EN/LZN 703 0292 R109A": "Ericsson Orchestrator EVNFM 4.2.0 Support Product Information",
+      "EN/LZN 795 5034/4 R13A": "Ericsson Software Defined Infrastructure (Ericsson SDI) 2.26 SLX Based Networking Support",
+      "EN/LZN 792 0001/13 R14A": "Cloud Execution Environment (CEE) 10.11, Ericsson Internal Support",
+      "EN/LZN 780 0035/2 R20A": "Software Defined Storage (SDS) 1.21, Support",
+      "EN/LZN 703 0289 R109A": "Ericsson Orchestrator EVNFM 4.2.0",
+      "EN/LZN 703 0278 R109A": "Ericsson Orchestrator Cloud Native 4.2.0",
+      "EN/LZN 792 0009/2 R35A": "Ericsson Cloud Container Distribution 2.32.0 Internal Support Library"
+    },
+    "CAL Store - BEAM": {
+      "EN/LZN 741 0340 R25F": "CAF 1.16.1, Ericsson Internal Support"
+    },
+    "CAL Store - ENIQ": {
+      "EN/LZN 701 0537 R1L": "Ericsson Network IQ Statistics (ENIQ-S) 24.2 EU4 Installation and Support"
+    },
+    "CPI Store - Mobile Core": {
+      "EN/LZN 702 0448 R39B": "Ericsson Home Subscriber Server Front End (HSS-FE) 1.38"
+    },
+    "CAL Store - R19": {
+      "EN/LZN 780 0024 R19H": "Ericsson BSP 8100 R19.7, Ericsson Internal Support (updated)"
+    },
+    "CAL Store - Cloud SDN": {
+      "EN/LZN 764 0062/1 R10A": "Cloud SDN 8.9 - CEE Integration (NFVI 7.9), Ericsson Internal Support",
+      "EN/LZN 764 0062/1 R9A": "Cloud SDN 8.8 - CEE Integration (NFVI 7.8), Ericsson Internal Support"
+    },
+    "CAL Store - CNOM": {
+      "EN/LZN 704 0277/1 R3B": "Cloud Native CNOM 2.2, Ericsson Internal Support",
+      "EN/LZN 704 0220/1 R92A": "Classic CNOM 2.3, Ericsson Internal Support"
+    },
+    "CAL Store - Ericsson Mediation": {
+      "EN/LZN 705 9071 R2A": "Ericsson Mediation 24.1",
+      "EN/LZN 705 9067 R12A": "Ericsson Mediation 21.11"
+    },
+    "CAL Store - Ericsson Operations Manager Cloud Infrastructure [OMC]": {
+      "EN/LZN 764 0063/1 R9A": "Ericsson OMC 2.8.0, Ericsson Internal Support"
+    },
+    "CAL Store - Ericsson Transport Automation Controller": {
+      "EN/LZN 795 0055/2 R3A": "Ericsson Transport Automation Controller 1.3.0"
+    },
+    "CPI Store - Ericsson Transport Automation Controller": {
+      "EN/LZN 795 0055/2 R6A": "Ericsson Transport Automation Controller 25.Q1"
+    },
+    "CAL Store - DM 5GC Small on Ericsson CNIS": {
+      "EN/LZN 704 0273/3 R4A": "Dual-Mode 5G Core Small 2.3 on Ericsson CNIS, Ericsson Internal Support"
+    },
+    "CAL Store - DSE": {
+      "EN/LZN 768 0186 R7E": "Ericsson Device Security Enabler (DSE) 1.6.2, Support"
+    },
+    "CPI Store - ENIQ Statistics": {
+      "EN/LZN 701 0493 R18E": "Ericsson Network IQ Statistics (ENIQ-S) 25.1 GA"
+    },
+    "CAL Store - Internal Test Libraries": {
+      "EN/LZN 703 0278 R100A": "EOOM Test build"
+    },
+    "CPI Store - PCG": {
+      "EN/LZN 704 0264/2 R27D": "Packet Core Gateway (PCG) 1.28, Ericsson Internal Support"
+    }
+}
