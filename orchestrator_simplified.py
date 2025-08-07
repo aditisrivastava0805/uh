@@ -259,7 +259,7 @@ def send_event(stage, event_type, payload):
         "timestamp": datetime.datetime.now().isoformat()
     }
     event_queue.put(event_data)
-    print(f"Event: {stage} - {event_type}: {payload}")
+    print(f"🔍 Sending event: {stage} - {event_type}: {payload}")
 
 def send_llm_change_event(change_data):
     """Send LLM change event to frontend."""
@@ -285,20 +285,21 @@ def modernization_process():
         
         # Reset repositories
         current_stage = "resetting"
-        send_event("process", "stage", "resetting")
-        send_event("process", "log", "Resetting repositories...")
+        send_event("resetting", "status", "running")
+        send_event("resetting", "log", "Resetting repositories...")
         
         if not reset_repositories():
-            send_event("process", "status", "error")
-            send_event("process", "log", "Failed to reset repositories")
+            send_event("resetting", "status", "error")
+            send_event("resetting", "log", "Failed to reset repositories")
             return False
         
-        send_event("process", "log", "✓ Repositories reset successfully")
+        send_event("resetting", "status", "completed")
+        send_event("resetting", "log", "✓ Repositories reset successfully")
         
         # Modernize adaptation pod scripts
-        current_stage = "modernizing"
-        send_event("process", "stage", "modernizing")
-        send_event("process", "log", "Starting Python modernization...")
+        current_stage = "modernizing_python"
+        send_event("modernizing_python", "status", "running")
+        send_event("modernizing_python", "log", "Starting Python modernization...")
         
         adaptation_pod_path = "cec-adaptation-pod-main"
         if not os.path.exists(adaptation_pod_path):
@@ -311,13 +312,15 @@ def modernization_process():
         if success:
             current_stage = "completed"
             process_status = "COMPLETED"
-            send_event("process", "status", "completed")
-            send_event("process", "log", "✓ Python modernization completed successfully")
+            send_event("modernizing_python", "status", "completed")
+            send_event("completed", "status", "completed")
+            send_event("completed", "log", "✓ Python modernization completed successfully")
         else:
             current_stage = "error"
             process_status = "ERROR"
-            send_event("process", "status", "error")
-            send_event("process", "log", "❌ Python modernization failed")
+            send_event("modernizing_python", "status", "error")
+            send_event("completed", "status", "error")
+            send_event("completed", "log", "❌ Python modernization failed")
         
         return success
         
@@ -326,8 +329,9 @@ def modernization_process():
         process_status = "ERROR"
         error_msg = f"Error during modernization process: {e}"
         print(error_msg)
-        send_event("process", "status", "error")
-        send_event("process", "log", f"❌ {error_msg}")
+        send_event("modernizing_python", "status", "error")
+        send_event("completed", "status", "error")
+        send_event("completed", "log", f"❌ {error_msg}")
         return False
     finally:
         process_running = False
@@ -398,8 +402,8 @@ async def reset_process():
     success = reset_repositories()
     
     if success:
-        send_event("process", "status", "reset")
-        send_event("process", "log", "Process reset successfully")
+        send_event("resetting", "status", "completed")
+        send_event("resetting", "log", "Process reset successfully")
         return JSONResponse({"status": "reset", "message": "Process reset successfully"})
     else:
         return JSONResponse({"status": "error", "message": "Failed to reset process"})
@@ -429,6 +433,17 @@ async def select_libraries(request: Request):
 async def get_selected_libraries():
     """Get currently selected libraries."""
     return JSONResponse({"status": "success", "libraries": selected_libraries})
+
+@app.post("/api/test-events")
+async def test_events():
+    """Test endpoint to verify event system is working."""
+    send_event("resetting", "status", "running")
+    send_event("resetting", "log", "Test event - resetting stage")
+    send_event("modernizing_python", "status", "running")
+    send_event("modernizing_python", "log", "Test event - modernizing stage")
+    send_event("completed", "status", "completed")
+    send_event("completed", "log", "Test event - completed stage")
+    return JSONResponse({"status": "success", "message": "Test events sent"})
 
 @app.get("/stream")
 async def event_stream(request: Request):

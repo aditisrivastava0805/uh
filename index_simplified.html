@@ -491,6 +491,7 @@
                         <button id="startBtn" class="btn btn-primary">🚀 Start Python Modernization</button>
                         <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
                         <button id="cancelBtn" class="btn btn-danger" style="display: none;">❌ Cancel</button>
+                        <button id="testEventsBtn" class="btn btn-secondary" style="margin-top: 10px;">🧪 Test Events</button>
                     </div>
                 </div>
 
@@ -634,6 +635,9 @@
             // Module selection buttons
             document.getElementById('selectAllModulesBtn').addEventListener('click', selectAllModules);
             document.getElementById('clearAllModulesBtn').addEventListener('click', clearAllModules);
+            
+            // Test events button
+            document.getElementById('testEventsBtn').addEventListener('click', testEvents);
         }
 
         function loadLibraries() {
@@ -830,6 +834,9 @@
 
         function handleEvent(eventData) {
             const { stage, type, payload } = eventData;
+            
+            // Debug logging
+            console.log('Received event:', { stage, type, payload });
 
             switch (type) {
                 case 'status':
@@ -850,6 +857,8 @@
                 case 'heartbeat':
                     // Keep connection alive
                     break;
+                default:
+                    console.log('Unknown event type:', type);
             }
         }
 
@@ -941,6 +950,24 @@
             document.getElementById('startBtn').disabled = false;
             document.getElementById('resetBtn').disabled = false;
             document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        function testEvents() {
+            fetch('/api/test-events', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showNotification('Test events sent - check console and stages', 'success');
+                } else {
+                    showNotification('Error sending test events: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error testing events:', error);
+                showNotification('Error testing events', 'error');
+            });
         }
 
         function showNotification(message, type) {
