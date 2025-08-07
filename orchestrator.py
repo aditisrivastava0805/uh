@@ -336,7 +336,6 @@ def uplift_repository(repo_path, target_jdk):
                 llm_change_data = {
                     "title": f"Uplifted {os.path.basename(java_file)}",
                     "description": f"Successfully modernized Java file to JDK {target_jdk}",
-                    "type": "success",
                     "file": java_file,
                     "stage": stage_id,
                     "details": change_summary,
@@ -363,7 +362,6 @@ def uplift_repository(repo_path, target_jdk):
                 llm_change_data = {
                     "title": f"Failed to uplift {os.path.basename(java_file)}",
                     "description": f"Failed to modernize Java file to JDK {target_jdk}",
-                    "type": "error",
                     "file": java_file,
                     "stage": stage_id,
                     "details": error_msg,
@@ -381,7 +379,6 @@ def uplift_repository(repo_path, target_jdk):
             llm_change_data = {
                 "title": f"Error processing {os.path.basename(java_file)}",
                 "description": f"Exception occurred while processing file",
-                "type": "error",
                 "file": java_file,
                 "stage": stage_id,
                 "details": error_msg,

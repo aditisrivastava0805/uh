@@ -883,34 +883,7 @@
             display: block;
         }
 
-        .changes-summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .change-stat-card {
-            background-color: var(--light-color);
-            padding: 15px;
-            border-radius: var(--border-radius);
-            text-align: center;
-        }
-
-        .change-stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 5px;
-        }
-
-        .change-stat-label {
-            font-size: 0.9rem;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .changes-timeline {
+        .changes-list {
             margin-bottom: 20px;
         }
 
@@ -926,21 +899,6 @@
         .change-entry:hover {
             background-color: #e9ecef;
             transform: translateX(5px);
-        }
-
-        .change-entry.error {
-            border-left-color: var(--error-color);
-            background-color: #fdf2f2;
-        }
-
-        .change-entry.success {
-            border-left-color: var(--secondary-color);
-            background-color: #f0f8f0;
-        }
-
-        .change-entry.warning {
-            border-left-color: var(--warning-color);
-            background-color: #fff8f0;
         }
 
         .change-header {
@@ -987,68 +945,6 @@
             white-space: pre-wrap;
         }
 
-        .change-tags {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .change-tag {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .change-tag.error {
-            background-color: var(--error-color);
-        }
-
-        .change-tag.success {
-            background-color: var(--secondary-color);
-        }
-
-        .change-tag.warning {
-            background-color: var(--warning-color);
-        }
-
-        .change-tag.info {
-            background-color: #6c757d;
-        }
-
-        .changes-filter {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .filter-button {
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            color: #666;
-            padding: 6px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-        }
-
-        .filter-button.active {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .filter-button:hover {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
         .changes-empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -1069,41 +965,6 @@
         .changes-empty-state-subtext {
             font-size: 0.9rem;
             opacity: 0.7;
-        }
-
-        .changes-export {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid var(--light-color);
-        }
-
-        .export-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .export-button {
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            padding: 8px 15px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
-        }
-
-        .export-button:hover {
-            background-color: #27ae60;
-        }
-
-        .export-button.secondary {
-            background-color: #6c757d;
-        }
-
-        .export-button.secondary:hover {
-            background-color: #5a6268;
         }
     </style>
 </head>
@@ -1264,56 +1125,12 @@
                     </div>
                     
                     <div class="changes-summary-content" id="changesSummaryContent">
-                        <!-- Statistics Cards -->
-                        <div class="changes-summary-stats">
-                            <div class="change-stat-card">
-                                <div class="change-stat-number" id="totalChanges">0</div>
-                                <div class="change-stat-label">Total Changes</div>
-                            </div>
-                            <div class="change-stat-card">
-                                <div class="change-stat-number" id="successfulChanges">0</div>
-                                <div class="change-stat-label">Successful</div>
-                            </div>
-                            <div class="change-stat-card">
-                                <div class="change-stat-number" id="errorChanges">0</div>
-                                <div class="change-stat-label">Errors</div>
-                            </div>
-                            <div class="change-stat-card">
-                                <div class="change-stat-number" id="warningChanges">0</div>
-                                <div class="change-stat-label">Warnings</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Filter Buttons -->
-                        <div class="changes-filter">
-                            <button class="filter-button active" data-filter="all">All Changes</button>
-                            <button class="filter-button" data-filter="success">Successful</button>
-                            <button class="filter-button" data-filter="error">Errors</button>
-                            <button class="filter-button" data-filter="warning">Warnings</button>
-                            <button class="filter-button" data-filter="info">Info</button>
-                        </div>
-                        
-                        <!-- Changes Timeline -->
-                        <div class="changes-timeline" id="changesTimeline">
+                        <!-- Changes List -->
+                        <div class="changes-list" id="changesList">
                             <div class="changes-empty-state">
                                 <div class="changes-empty-state-icon">📝</div>
                                 <div class="changes-empty-state-text">No changes recorded yet</div>
                                 <div class="changes-empty-state-subtext">Changes made by the LLM will appear here once the uplift process begins</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Export Section -->
-                        <div class="changes-export">
-                            <div class="export-buttons">
-                                <button class="export-button" id="exportChangesJSON">
-                                    📄 Export as JSON
-                                </button>
-                                <button class="export-button secondary" id="exportChangesCSV">
-                                    📊 Export as CSV
-                                </button>
-                                <button class="export-button secondary" id="exportChangesReport">
-                                    📋 Generate Report
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -1492,7 +1309,6 @@
 
         // LLM Changes Summary Component State
         let llmChanges = [];
-        let currentFilter = 'all';
         let changesSummaryVisible = false;
 
         // Library selection functionality
@@ -1576,27 +1392,10 @@
         // LLM Changes Summary Component Functions
         function initializeChangesSummaryHandlers() {
             const toggleButton = document.getElementById('toggleChangesSummary');
-            const filterButtons = document.querySelectorAll('.filter-button');
-            const exportButtons = document.querySelectorAll('.export-button');
 
             // Toggle changes summary visibility
             if (toggleButton) {
                 toggleButton.addEventListener('click', toggleChangesSummary);
-            }
-
-            // Filter functionality
-            filterButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const filter = button.dataset.filter;
-                    setFilter(filter);
-                });
-            });
-
-            // Export functionality
-            if (exportButtons.length > 0) {
-                document.getElementById('exportChangesJSON')?.addEventListener('click', exportChangesJSON);
-                document.getElementById('exportChangesCSV')?.addEventListener('click', exportChangesCSV);
-                document.getElementById('exportChangesReport')?.addEventListener('click', exportChangesReport);
             }
         }
 
@@ -1622,7 +1421,6 @@
             
             // Update display
             updateChangesDisplay();
-            updateChangesStats();
             
             // Show changes summary if it's not already visible
             if (!changesSummaryVisible) {
@@ -1631,36 +1429,33 @@
         }
 
         function updateChangesDisplay() {
-            const timeline = document.getElementById('changesTimeline');
-            if (!timeline) return;
+            const changesList = document.getElementById('changesList');
+            if (!changesList) return;
 
             // Clear existing content
-            timeline.innerHTML = '';
+            changesList.innerHTML = '';
 
-            // Filter changes based on current filter
-            const filteredChanges = filterChanges(llmChanges, currentFilter);
-
-            if (filteredChanges.length === 0) {
-                timeline.innerHTML = `
+            if (llmChanges.length === 0) {
+                changesList.innerHTML = `
                     <div class="changes-empty-state">
-                        <div class="changes-empty-state-icon">🔍</div>
-                        <div class="changes-empty-state-text">No changes match the current filter</div>
-                        <div class="changes-empty-state-subtext">Try changing the filter or wait for more changes</div>
+                        <div class="changes-empty-state-icon">📝</div>
+                        <div class="changes-empty-state-text">No changes recorded yet</div>
+                        <div class="changes-empty-state-subtext">Changes made by the LLM will appear here once the uplift process begins</div>
                     </div>
                 `;
                 return;
             }
 
             // Create change entries
-            filteredChanges.forEach(change => {
+            llmChanges.forEach(change => {
                 const changeEntry = createChangeEntry(change);
-                timeline.appendChild(changeEntry);
+                changesList.appendChild(changeEntry);
             });
         }
 
         function createChangeEntry(change) {
             const entry = document.createElement('div');
-            entry.className = `change-entry ${change.type || 'info'}`;
+            entry.className = 'change-entry';
             
             const timestamp = new Date(change.timestamp).toLocaleString();
             
@@ -1671,136 +1466,15 @@
                 </div>
                 <div class="change-description">${change.description || 'No description provided'}</div>
                 ${change.details ? `<div class="change-details"><pre>${escapeHtml(change.details)}</pre></div>` : ''}
-                <div class="change-tags">
-                    <span class="change-tag ${change.type || 'info'}">${change.type || 'info'}</span>
-                    ${change.file ? `<span class="change-tag info">${change.file}</span>` : ''}
-                    ${change.stage ? `<span class="change-tag info">${change.stage}</span>` : ''}
-                </div>
             `;
             
             return entry;
-        }
-
-        function filterChanges(changes, filter) {
-            if (filter === 'all') return changes;
-            return changes.filter(change => change.type === filter);
-        }
-
-        function setFilter(filter) {
-            currentFilter = filter;
-            
-            // Update filter button states
-            document.querySelectorAll('.filter-button').forEach(button => {
-                button.classList.toggle('active', button.dataset.filter === filter);
-            });
-            
-            // Update display
-            updateChangesDisplay();
-        }
-
-        function updateChangesStats() {
-            const total = llmChanges.length;
-            const successful = llmChanges.filter(c => c.type === 'success').length;
-            const errors = llmChanges.filter(c => c.type === 'error').length;
-            const warnings = llmChanges.filter(c => c.type === 'warning').length;
-
-            document.getElementById('totalChanges').textContent = total;
-            document.getElementById('successfulChanges').textContent = successful;
-            document.getElementById('errorChanges').textContent = errors;
-            document.getElementById('warningChanges').textContent = warnings;
         }
 
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
-
-        function exportChangesJSON() {
-            const dataStr = JSON.stringify(llmChanges, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `llm_changes_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function exportChangesCSV() {
-            if (llmChanges.length === 0) {
-                alert('No changes to export');
-                return;
-            }
-
-            const headers = ['Timestamp', 'Type', 'Title', 'Description', 'File', 'Stage'];
-            const csvContent = [
-                headers.join(','),
-                ...llmChanges.map(change => [
-                    new Date(change.timestamp).toLocaleString(),
-                    change.type || 'info',
-                    `"${(change.title || '').replace(/"/g, '""')}"`,
-                    `"${(change.description || '').replace(/"/g, '""')}"`,
-                    `"${(change.file || '').replace(/"/g, '""')}"`,
-                    `"${(change.stage || '').replace(/"/g, '""')}"`
-                ].join(','))
-            ].join('\n');
-
-            const dataBlob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `llm_changes_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function exportChangesReport() {
-            if (llmChanges.length === 0) {
-                alert('No changes to export');
-                return;
-            }
-
-            const report = generateChangesReport();
-            const dataBlob = new Blob([report], { type: 'text/plain' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `llm_changes_report_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function generateChangesReport() {
-            const total = llmChanges.length;
-            const successful = llmChanges.filter(c => c.type === 'success').length;
-            const errors = llmChanges.filter(c => c.type === 'error').length;
-            const warnings = llmChanges.filter(c => c.type === 'warning').length;
-
-            let report = `LLM Changes Summary Report\n`;
-            report += `Generated: ${new Date().toLocaleString()}\n`;
-            report += `\n`;
-            report += `Summary:\n`;
-            report += `- Total Changes: ${total}\n`;
-            report += `- Successful: ${successful}\n`;
-            report += `- Errors: ${errors}\n`;
-            report += `- Warnings: ${warnings}\n`;
-            report += `\n`;
-            report += `Detailed Changes:\n`;
-            report += `================\n\n`;
-
-            llmChanges.forEach((change, index) => {
-                report += `${index + 1}. ${change.title || 'LLM Change'}\n`;
-                report += `   Type: ${change.type || 'info'}\n`;
-                report += `   Timestamp: ${new Date(change.timestamp).toLocaleString()}\n`;
-                report += `   Description: ${change.description || 'No description'}\n`;
-                if (change.file) report += `   File: ${change.file}\n`;
-                if (change.stage) report += `   Stage: ${change.stage}\n`;
-                if (change.details) report += `   Details:\n${change.details}\n`;
-                report += `\n`;
-            });
-
-            return report;
         }
 
         // Adaptation pod module selection functionality

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Changes Summary Test</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --border-radius: 6px;
+            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* LLM Changes Summary Component Styles */
+        .changes-summary-section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            margin-top: 30px;
+        }
+
+        .changes-summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-color);
+        }
+
+        .changes-summary-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .changes-summary-icon {
+            font-size: 1.5rem;
+        }
+
+        .changes-summary-toggle {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .changes-summary-toggle:hover {
+            background-color: #2980b9;
+        }
+
+        .changes-summary-content {
+            display: none;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .changes-summary-content.show {
+            display: block;
+        }
+
+        .changes-list {
+            margin-bottom: 20px;
+        }
+
+        .change-entry {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            transition: all 0.2s ease;
+        }
+
+        .change-entry:hover {
+            background-color: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .change-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .change-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 1.1rem;
+        }
+
+        .change-timestamp {
+            font-size: 0.8rem;
+            color: #666;
+            background-color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .change-description {
+            color: #555;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .change-details {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+
+        .change-details pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .changes-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .changes-empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .changes-empty-state-text {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .changes-empty-state-subtext {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .test-controls {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 30px;
+        }
+
+        .test-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            transition: all 0.2s ease;
+        }
+
+        .test-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LLM Changes Summary Component Test</h1>
+        
+        <div class="test-controls">
+            <h2>Test Controls</h2>
+            <p>Click the buttons below to test the simplified LLM changes summary component:</p>
+            <button class="test-button" onclick="addTestChange()">Add Sample Change</button>
+            <button class="test-button" onclick="clearChanges()">Clear All Changes</button>
+        </div>
+
+        <!-- LLM Changes Summary Component -->
+        <div class="changes-summary-section">
+            <div class="changes-summary-header">
+                <div class="changes-summary-title">
+                    <span class="changes-summary-icon">🤖</span>
+                    LLM Changes Summary
+                </div>
+                <button class="changes-summary-toggle" id="toggleChangesSummary">
+                    Show Changes
+                </button>
+            </div>
+            
+            <div class="changes-summary-content" id="changesSummaryContent">
+                <!-- Changes List -->
+                <div class="changes-list" id="changesList">
+                    <div class="changes-empty-state">
+                        <div class="changes-empty-state-icon">📝</div>
+                        <div class="changes-empty-state-text">No changes recorded yet</div>
+                        <div class="changes-empty-state-subtext">Click the test button above to add sample changes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LLM Changes Summary Component State
+        let llmChanges = [];
+        let changesSummaryVisible = false;
+
+        // Initialize handlers
+        function initializeChangesSummaryHandlers() {
+            const toggleButton = document.getElementById('toggleChangesSummary');
+
+            // Toggle changes summary visibility
+            if (toggleButton) {
+                toggleButton.addEventListener('click', toggleChangesSummary);
+            }
+        }
+
+        function toggleChangesSummary() {
+            const content = document.getElementById('changesSummaryContent');
+            const toggleButton = document.getElementById('toggleChangesSummary');
+            
+            if (content && toggleButton) {
+                changesSummaryVisible = !changesSummaryVisible;
+                content.classList.toggle('show', changesSummaryVisible);
+                toggleButton.textContent = changesSummaryVisible ? 'Hide Changes' : 'Show Changes';
+            }
+        }
+
+        function addLLMChange(change) {
+            // Add timestamp if not provided
+            if (!change.timestamp) {
+                change.timestamp = new Date().toISOString();
+            }
+            
+            // Add to changes array
+            llmChanges.push(change);
+            
+            // Update display
+            updateChangesDisplay();
+            
+            // Show changes summary if it's not already visible
+            if (!changesSummaryVisible) {
+                toggleChangesSummary();
+            }
+        }
+
+        function updateChangesDisplay() {
+            const changesList = document.getElementById('changesList');
+            if (!changesList) return;
+
+            // Clear existing content
+            changesList.innerHTML = '';
+
+            if (llmChanges.length === 0) {
+                changesList.innerHTML = `
+                    <div class="changes-empty-state">
+                        <div class="changes-empty-state-icon">📝</div>
+                        <div class="changes-empty-state-text">No changes recorded yet</div>
+                        <div class="changes-empty-state-subtext">Click the test button above to add sample changes</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Create change entries
+            llmChanges.forEach(change => {
+                const changeEntry = createChangeEntry(change);
+                changesList.appendChild(changeEntry);
+            });
+        }
+
+        function createChangeEntry(change) {
+            const entry = document.createElement('div');
+            entry.className = 'change-entry';
+            
+            const timestamp = new Date(change.timestamp).toLocaleString();
+            
+            entry.innerHTML = `
+                <div class="change-header">
+                    <div class="change-title">${change.title || 'LLM Change'}</div>
+                    <div class="change-timestamp">${timestamp}</div>
+                </div>
+                <div class="change-description">${change.description || 'No description provided'}</div>
+                ${change.details ? `<div class="change-details"><pre>${escapeHtml(change.details)}</pre></div>` : ''}
+            `;
+            
+            return entry;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Test functions
+        function addTestChange() {
+            const testChange = {
+                title: 'Successfully uplifted Main.java',
+                description: 'Successfully modernized Java file to JDK 17',
+                file: 'src/main/java/com/example/Main.java',
+                stage: 'uplifting_source',
+                details: 'Updated deprecated API calls and modernized syntax for JDK 17 compatibility.\n\nChanges made:\n- Replaced deprecated Vector with ArrayList\n- Updated for-loop syntax to use enhanced for-each\n- Added @Override annotations where missing\n- Updated exception handling to use try-with-resources'
+            };
+
+            addLLMChange(testChange);
+        }
+
+        function clearChanges() {
+            llmChanges = [];
+            updateChangesDisplay();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeChangesSummaryHandlers();
+        });
+    </script>
+</body>
+</html> 
