@@ -148,7 +148,7 @@ def test_frontend_integration():
     
     # Check if index.html exists and has required elements
     if os.path.exists("index.html"):
-        with open("index.html", "r") as f:
+        with open("index.html", "r", encoding="utf-8") as f:
             content = f.read()
             
         required_elements = [
