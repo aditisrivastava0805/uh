@@ -808,19 +808,24 @@ def uplift_process():
             send_event("system", "process_status", "finished")
             return
         
-        # Step 5: Uplift source code
-        print("\n🔧 Step 5: Uplifting source code...")
-        send_event("uplifting_source", "status", "running")
-        if not uplift_repository("repositories/source-code", "17"):
-            print("❌ Failed to uplift source code")
-            log_summary("UPLIFT SIMULATION ERROR", "Failed to uplift source code.")
-            send_event("uplifting_source", "status", "error")
-            process_status = "FINISHED"
-            return
-        
-        # Explicitly mark source code uplift as completed
-        send_event("uplifting_source", "status", "completed")
-        
+        # Step 5: Uplift source code (only for Java mode)
+        if uplift_type == 'java':
+            print("\n🔧 Step 5: Uplifting source code...")
+            send_event("uplifting_source", "status", "running")
+            if not uplift_repository("repositories/source-code", "17"):
+                print("❌ Failed to uplift source code")
+                log_summary("UPLIFT SIMULATION ERROR", "Failed to uplift source code.")
+                send_event("uplifting_source", "status", "error")
+                process_status = "FINISHED"
+                return
+            
+            # Explicitly mark source code uplift as completed
+            send_event("uplifting_source", "status", "completed")
+        else:
+            # For non-Java modes (like adaptation pod), skip source code uplift
+            print(f"\n⏭️  Step 5: Skipping source code uplift for {uplift_type} mode")
+            send_event("uplifting_source", "status", "skipped")
+
         # Check if process was canceled
         if process_status == "CANCELED":
             log_summary("UPLIFT SIMULATION", "Process was canceled by user")
