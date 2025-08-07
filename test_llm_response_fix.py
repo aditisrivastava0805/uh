@@ -58,35 +58,38 @@ Hello, World!
             
             print(f"🔍 Response structure: {list(result.keys())}")
             
-            # Check for different response formats
-            if 'choices' in result:
-                print(f"✅ Found 'choices' format with {len(result['choices'])} items")
-                if len(result['choices']) > 0:
-                    choice = result['choices'][0]
-                    print(f"🔍 Choice keys: {list(choice.keys())}")
-                    if 'message' in choice:
-                        print(f"✅ Found 'message' format: {choice['message'].get('content', '')[:100]}...")
-                    else:
-                        print(f"✅ Found direct text format: {choice.get('text', '')[:100]}...")
+            # Check for documented API response format
+            print(f"🔍 Expected fields: message, status, time_elapsed, completions, model")
             
             if 'completions' in result:
                 print(f"✅ Found 'completions' format with {len(result['completions'])} items")
                 if len(result['completions']) > 0:
                     print(f"✅ Completion text: {result['completions'][0][:100]}...")
+            else:
+                print("❌ Missing 'completions' field (expected per API documentation)")
             
-            # Test the new response parsing logic
+            if 'message' in result:
+                print(f"✅ API message: {result['message']}")
+            if 'status' in result:
+                print(f"✅ API status: {result['status']}")
+            if 'time_elapsed' in result:
+                print(f"✅ Time elapsed: {result['time_elapsed']}")
+            
+            # Test the response parsing logic based on documented format
             llm_response = None
             
-            # Try 'choices' format first (OpenAI-style)
-            if 'choices' in result and len(result['choices']) > 0:
+            # Primary: Use 'completions' format as documented in API spec
+            if 'completions' in result and len(result['completions']) > 0:
+                llm_response = result['completions'][0].strip()
+                print(f"✅ Successfully extracted from 'completions' field")
+            
+            # Fallback: Try 'choices' format for compatibility
+            elif 'choices' in result and len(result['choices']) > 0:
                 if 'message' in result['choices'][0]:
                     llm_response = result['choices'][0]['message']['content']
                 else:
                     llm_response = result['choices'][0].get('text', '')
-            
-            # Try 'completions' format (Ericsson API style)
-            elif 'completions' in result and len(result['completions']) > 0:
-                llm_response = result['completions'][0].strip()
+                print(f"⚠️  Using fallback 'choices' format")
             
             if llm_response:
                 print(f"✅ Successfully extracted response: {llm_response[:200]}...")

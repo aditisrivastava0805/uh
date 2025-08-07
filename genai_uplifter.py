@@ -288,26 +288,32 @@ Note: No Ericsson-specific context was retrieved. Proceed with standard moderniz
         if response.status_code == 200:
             result = response.json()
             
-            # Debug: Print response structure (first 500 chars)
+            # Debug: Print response structure based on documented format
             print(f"🔍 LLM API Response structure: {list(result.keys())}")
-            if 'choices' in result:
-                print(f"🔍 Choices array length: {len(result['choices'])}")
             if 'completions' in result:
                 print(f"🔍 Completions array length: {len(result['completions'])}")
+                if len(result['completions']) > 0:
+                    print(f"🔍 First completion preview: {result['completions'][0][:100]}...")
+            if 'message' in result:
+                print(f"🔍 Response message: {result['message']}")
+            if 'status' in result:
+                print(f"🔍 Response status: {result['status']}")
             
-            # Handle both response formats: 'choices' and 'completions'
+            # Handle response based on documented API format
             llm_response = None
             
-            # Try 'completions' format first (Ericsson API style) - this is the expected format
+            # Primary: Use 'completions' format as documented in API spec
             if 'completions' in result and len(result['completions']) > 0:
                 llm_response = result['completions'][0].strip()
+                print(f"✅ Successfully extracted response from 'completions' field")
             
-            # Try 'choices' format as fallback (OpenAI-style)
+            # Fallback: Try 'choices' format (OpenAI-style) for compatibility
             elif 'choices' in result and len(result['choices']) > 0:
                 if 'message' in result['choices'][0]:
                     llm_response = result['choices'][0]['message']['content']
                 else:
                     llm_response = result['choices'][0].get('text', '')
+                print(f"⚠️  Using fallback 'choices' format")
             
             if llm_response:
                 # Parse the response
@@ -321,7 +327,11 @@ Note: No Ericsson-specific context was retrieved. Proceed with standard moderniz
                     return None, "Failed to extract updated code from LLM response"
             else:
                 print("❌ No valid response format found in LLM response")
-                print(f"Available keys in response: {list(result.keys())}")
+                print(f"Expected 'completions' array or 'choices' array, but found: {list(result.keys())}")
+                if 'message' in result:
+                    print(f"API message: {result['message']}")
+                if 'status' in result:
+                    print(f"API status: {result['status']}")
                 return None, "No valid response format found in LLM response"
         else:
             print(f"❌ LLM API error: {response.status_code} - {response.text}")
