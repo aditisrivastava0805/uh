@@ -218,9 +218,322 @@ def run_command(command, working_dir="."):
         print(f"Error running command {' '.join(command)}: {e}")
         return None, str(e), 1
 
-def get_llm_suggestion(java_code, modernizer_findings, target_jdk_version, selected_libraries=None):
+def get_llm_suggestion(code, analysis_findings, target_version, selected_libraries=None, file_type='java'):
     """Gets suggestions from LLM API for code modernization with RAG context."""
-    print(f"Asking LLM to update code for JDK {target_jdk_version}...")
+    print(f"Asking LLM to update {file_type} code for {target_version}...")
+    
+    # Check RAG connection
+    rag_connected, rag_status = test_rag_connection()
+    if not rag_connected:
+        print(f"Warning: RAG API not available - {rag_status}")
+        print("Proceeding with LLM-only modernization.")
+    
+    # Get RAG context if available
+    rag_context = ""
+    if rag_connected and selected_libraries:
+        try:
+            rag_context = get_rag_context(code, analysis_findings, target_version, selected_libraries)
+            print("✅ RAG context retrieved successfully")
+        except Exception as e:
+            print(f"Warning: Failed to get RAG context: {e}")
+            rag_context = ""
+    
+    # Build context section for prompt
+    context_section = ""
+    if rag_context and rag_context.strip():
+        context_section = f"""
+RELEVANT CONTEXT FROM ERICSSON PRODUCT LIBRARIES:
+The following context has been retrieved from Ericsson product libraries to guide the modernization:
+
+{rag_context}
+
+Use this context to understand Ericsson-specific patterns and requirements when modernizing the code.
+Follow any specific migration patterns or best practices mentioned in the context.
+"""
+    else:
+        context_section = """
+Note: No Ericsson-specific context was retrieved. Proceed with standard modernization patterns.
+"""
+    
+    # Create language-specific prompts
+    if file_type == 'java':
+        prompt = create_java_prompt(code, analysis_findings, target_version, context_section)
+    elif file_type == 'python':
+        prompt = create_python_prompt(code, analysis_findings, target_version, context_section)
+    else:
+        prompt = create_generic_prompt(code, analysis_findings, target_version, file_type, context_section)
+    
+    try:
+        headers = {
+            "Authorization": f"Bearer {LLM_API_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": LLM_MODEL,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.1,
+            "max_tokens": 4000
+        }
+        
+        response = requests.post(LLM_API_URL, headers=headers, json=payload, verify=False)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if 'choices' in result and len(result['choices']) > 0:
+                llm_response = result['choices'][0]['message']['content']
+                
+                # Parse the response
+                change_summary = extract_change_summary(llm_response)
+                updated_code = extract_updated_code(llm_response, file_type)
+                
+                if updated_code:
+                    return updated_code, change_summary
+                else:
+                    print("❌ Failed to extract updated code from LLM response")
+                    return None, "Failed to extract updated code from LLM response"
+            else:
+                print("❌ No choices in LLM response")
+                return None, "No choices in LLM response"
+        else:
+            print(f"❌ LLM API error: {response.status_code} - {response.text}")
+            return None, f"LLM API error: {response.status_code}"
+            
+    except Exception as e:
+        print(f"❌ Error calling LLM API: {e}")
+        return None, f"Error calling LLM API: {e}"
+
+def create_java_prompt(code, analysis_findings, target_version, context_section):
+    """Create a Java-specific prompt for modernization."""
+    return f"""
+You are a Java expert specializing in CONSERVATIVE code modernization from older Java versions to newer ones.
+
+CRITICAL REQUIREMENTS:
+1. MAINTAIN EXACT FUNCTIONALITY - Do NOT fix bugs, errors, or improve logic
+2. PRESERVE ALL EXISTING BEHAVIOR - Even if the code appears wrong or suboptimal
+3. ONLY modernize APIs, syntax, and deprecated elements for Java {target_version} compatibility
+4. If code doesn't compile due to missing dependencies, leave it as-is
+5. If code has logical errors, preserve those errors exactly
+
+The following Java code needs MINIMAL updates for Java {target_version} compatibility.
+Analysis found these modernization opportunities:
+
+<analysis_findings>
+{analysis_findings}
+</analysis_findings>
+
+{context_section}
+
+Your task is to ONLY:
+- Replace deprecated APIs with their modern equivalents (same behavior)
+- Update syntax that won't compile in Java {target_version}
+- Address specific issues from analysis findings
+- Consider Ericsson-specific patterns from the provided context
+- Keep ALL other code exactly as-is, including any bugs or compilation issues
+
+DO NOT:
+- Fix compilation errors unless they're due to deprecated APIs
+- Improve algorithms or logic
+- Add missing imports or dependencies
+- Fix potential null pointer exceptions
+- Optimize performance
+- Change variable names or code structure
+- Add error handling
+
+PRESERVE EXACTLY:
+- All variable names and types
+- All method signatures
+- All logic flow and conditions
+- Any existing bugs or issues
+- All comments and formatting
+
+Format your response as:
+
+<change_summary>
+[Brief summary of ONLY the modernization changes made, referencing analysis findings. If no changes needed, state "No modernization required."]
+</change_summary>
+
+<updated_code>
+```java
+[Updated Java code with MINIMAL changes for Java {target_version} compatibility]
+```
+</updated_code>
+
+Original Java code:
+```java
+{code}
+```
+"""
+
+def create_python_prompt(code, analysis_findings, target_version, context_section):
+    """Create a Python-specific prompt for modernization."""
+    return f"""
+You are a Python expert specializing in CONSERVATIVE code modernization from older Python versions to newer ones.
+
+CRITICAL REQUIREMENTS:
+1. MAINTAIN EXACT FUNCTIONALITY - Do NOT fix bugs, errors, or improve logic
+2. PRESERVE ALL EXISTING BEHAVIOR - Even if the code appears wrong or suboptimal
+3. ONLY modernize APIs, syntax, and deprecated elements for Python {target_version} compatibility
+4. If code doesn't run due to missing dependencies, leave it as-is
+5. If code has logical errors, preserve those errors exactly
+
+The following Python code needs MINIMAL updates for Python {target_version} compatibility.
+Analysis found these modernization opportunities:
+
+<analysis_findings>
+{analysis_findings}
+</analysis_findings>
+
+{context_section}
+
+Your task is to ONLY:
+- Replace deprecated APIs with their modern equivalents (same behavior)
+- Update syntax that won't work in Python {target_version}
+- Address specific issues from analysis findings
+- Consider Ericsson-specific patterns from the provided context
+- Keep ALL other code exactly as-is, including any bugs or runtime issues
+
+DO NOT:
+- Fix runtime errors unless they're due to deprecated APIs
+- Improve algorithms or logic
+- Add missing imports or dependencies
+- Fix potential exceptions
+- Optimize performance
+- Change variable names or code structure
+- Add error handling
+
+PRESERVE EXACTLY:
+- All variable names and types
+- All function signatures
+- All logic flow and conditions
+- Any existing bugs or issues
+- All comments and formatting
+
+Format your response as:
+
+<change_summary>
+[Brief summary of ONLY the modernization changes made, referencing analysis findings. If no changes needed, state "No modernization required."]
+</change_summary>
+
+<updated_code>
+```python
+[Updated Python code with MINIMAL changes for Python {target_version} compatibility]
+```
+</updated_code>
+
+Original Python code:
+```python
+{code}
+```
+"""
+
+def create_generic_prompt(code, analysis_findings, target_version, file_type, context_section):
+    """Create a generic prompt for modernization."""
+    return f"""
+You are a code modernization expert specializing in CONSERVATIVE code updates from older versions to newer ones.
+
+CRITICAL REQUIREMENTS:
+1. MAINTAIN EXACT FUNCTIONALITY - Do NOT fix bugs, errors, or improve logic
+2. PRESERVE ALL EXISTING BEHAVIOR - Even if the code appears wrong or suboptimal
+3. ONLY modernize APIs, syntax, and deprecated elements for {file_type} {target_version} compatibility
+4. If code doesn't compile/run due to missing dependencies, leave it as-is
+5. If code has logical errors, preserve those errors exactly
+
+The following {file_type} code needs MINIMAL updates for {target_version} compatibility.
+Analysis found these modernization opportunities:
+
+<analysis_findings>
+{analysis_findings}
+</analysis_findings>
+
+{context_section}
+
+Your task is to ONLY:
+- Replace deprecated APIs with their modern equivalents (same behavior)
+- Update syntax that won't work in {target_version}
+- Address specific issues from analysis findings
+- Consider Ericsson-specific patterns from the provided context
+- Keep ALL other code exactly as-is, including any bugs or compilation issues
+
+DO NOT:
+- Fix compilation errors unless they're due to deprecated APIs
+- Improve algorithms or logic
+- Add missing imports or dependencies
+- Fix potential errors
+- Optimize performance
+- Change variable names or code structure
+- Add error handling
+
+PRESERVE EXACTLY:
+- All variable names and types
+- All function/method signatures
+- All logic flow and conditions
+- Any existing bugs or issues
+- All comments and formatting
+
+Format your response as:
+
+<change_summary>
+[Brief summary of ONLY the modernization changes made, referencing analysis findings. If no changes needed, state "No modernization required."]
+</change_summary>
+
+<updated_code>
+```{file_type}
+[Updated {file_type} code with MINIMAL changes for {target_version} compatibility]
+```
+</updated_code>
+
+Original {file_type} code:
+```{file_type}
+{code}
+```
+"""
+
+def extract_change_summary(response):
+    """Extract change summary from LLM response."""
+    try:
+        start_marker = "<change_summary>"
+        end_marker = "</change_summary>"
+        
+        start_idx = response.find(start_marker)
+        end_idx = response.find(end_marker)
+        
+        if start_idx != -1 and end_idx != -1:
+            start_idx += len(start_marker)
+            return response[start_idx:end_idx].strip()
+        else:
+            return "Change summary not found in response"
+    except Exception as e:
+        return f"Error extracting change summary: {e}"
+
+def extract_updated_code(response, file_type):
+    """Extract updated code from LLM response."""
+    try:
+        start_marker = f"```{file_type}"
+        end_marker = "```"
+        
+        start_idx = response.find(start_marker)
+        if start_idx != -1:
+            start_idx += len(start_marker)
+            end_idx = response.find(end_marker, start_idx)
+            
+            if end_idx != -1:
+                return response[start_idx:end_idx].strip()
+        
+        return None
+    except Exception as e:
+        print(f"Error extracting updated code: {e}")
+        return None
+
+# Backward compatibility function
+def get_java_llm_suggestion(java_code, modernizer_findings, target_jdk_version, selected_libraries=None):
+    """Backward compatibility function for Java-specific LLM suggestions."""
+    return get_llm_suggestion(java_code, modernizer_findings, target_jdk_version, selected_libraries, 'java')
     
     # Check RAG connection
     rag_connected, rag_status = test_rag_connection()

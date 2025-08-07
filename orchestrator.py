@@ -33,6 +33,7 @@ process_status = "IDLE"      # Should already exist
 event_queue = queue.Queue()  # Should already exist
 process_thread = None        # Should already exist
 selected_libraries = []      # Store selected library IDs for RAG context
+uplift_config = {}          # Store uplift configuration
 
 # Create output directories if they don't exist
 os.makedirs("baseline_output", exist_ok=True)
@@ -261,33 +262,180 @@ def run_tests(environment, output_dir):
         send_event(stage_id, "status", "error")
         return None, "\n".join(test_summary)
 
-def find_java_files(repo_path):
-    """Find all Java files in the repository."""
-    java_files = []
-    for root, dirs, files in os.walk(repo_path):
+def find_files_by_extension(repo_path, extensions):
+    """Find all files with specified extensions in the repository."""
+    files = []
+    for root, dirs, filenames in os.walk(repo_path):
         # Skip hidden directories and build directories
-        dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['target', 'build']]
-        for file in files:
-            if file.endswith('.java'):
-                java_files.append(os.path.join(root, file))
+        dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['target', 'build', '__pycache__', 'node_modules', '.git']]
+        for file in filenames:
+            if any(file.endswith(ext) for ext in extensions):
+                files.append(os.path.join(root, file))
     
     # Remove duplicates
-    return list(set(java_files))
+    return list(set(files))
 
-def uplift_repository(repo_path, target_jdk):
-    """Uplift all Java files in a repository."""
-    print(f"\n=== Uplifting repository: {repo_path} to JDK {target_jdk} ===")
+def find_java_files(repo_path):
+    """Find all Java files in the repository."""
+    return find_files_by_extension(repo_path, ['.java'])
+
+def find_python_files(repo_path):
+    """Find all Python files in the repository."""
+    return find_files_by_extension(repo_path, ['.py'])
+
+def get_file_type(file_path):
+    """Determine the type of file based on extension."""
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.java':
+        return 'java'
+    elif ext == '.py':
+        return 'python'
+    elif ext in ['.js', '.ts', '.jsx', '.tsx']:
+        return 'javascript'
+    elif ext in ['.cpp', '.cc', '.cxx', '.c']:
+        return 'cpp'
+    else:
+        return 'unknown'
+
+def uplift_adaptation_pod_modules(repo_path, uplift_config):
+    """Uplift specific adaptation pod modules."""
+    print(f"\n=== Uplifting adaptation pod modules: {repo_path} ===")
     uplift_summary = []
     uplift_summary.append(f"Repository: {repo_path}")
-    uplift_summary.append(f"Target JDK: {target_jdk}")
+    uplift_summary.append(f"Uplift Type: {uplift_config.get('type', 'unknown')}")
+    uplift_summary.append(f"Target Version: {uplift_config.get('target_version', 'unknown')}")
     
-    # Determine stage ID based on repository
-    stage_id = "uplifting_essvt" if "ESSVT" in repo_path else "uplifting_source"
+    selected_modules = uplift_config.get('selected_modules', [])
+    if not selected_modules:
+        message = "No modules selected for uplift"
+        print(message)
+        uplift_summary.append(f"\n{message}")
+        send_event("uplifting_python", "log", message)
+        send_event("uplifting_python", "status", "error")
+        return False
+    
+    uplift_summary.append(f"\nSelected modules: {', '.join(selected_modules)}")
+    send_event("uplifting_python", "log", f"Selected modules: {', '.join(selected_modules)}")
+    
+    success_count = 0
+    total_modules = len(selected_modules)
+    
+    for module in selected_modules:
+        module_path = os.path.join(repo_path, module)
+        if not os.path.exists(module_path):
+            print(f"Module path does not exist: {module_path}")
+            continue
+            
+        print(f"\nProcessing module: {module}")
+        uplift_summary.append(f"\n--- Processing module: {module} ---")
+        send_event("uplifting_python", "log", f"\nProcessing module: {module}")
+        
+        # Find Python files in the module
+        python_files = find_python_files(module_path)
+        
+        if not python_files:
+            print(f"No Python files found in module: {module}")
+            continue
+            
+        for file_path in python_files:
+            print(f"Processing file: {file_path}")
+            try:
+                # Read original code
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    original_code = f.read()
+                
+                # Create analysis for Python file
+                analysis_findings = f"Python code analysis for {module} module to Python {uplift_config.get('target_version', '3.9')}"
+                
+                # Get LLM suggestion
+                updated_code, change_summary = get_llm_suggestion(
+                    original_code, 
+                    analysis_findings, 
+                    uplift_config.get('target_version', '3.9'), 
+                    selected_libraries
+                )
+                
+                if updated_code:
+                    # Save updated code
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(updated_code)
+                    
+                    # Send LLM change event
+                    llm_change_data = {
+                        "title": f"Uplifted {os.path.basename(file_path)}",
+                        "description": f"Successfully modernized Python file in {module} module",
+                        "file": file_path,
+                        "stage": "uplifting_python",
+                        "details": change_summary,
+                        "timestamp": datetime.datetime.now().isoformat()
+                    }
+                    send_llm_change_event(llm_change_data)
+                    
+                    print(f"Successfully uplifted: {file_path}")
+                    uplift_summary.append(f"\n✓ Successfully uplifted: {file_path}")
+                    send_event("uplifting_python", "log", f"✓ Successfully uplifted: {file_path}")
+                    success_count += 1
+                else:
+                    error_msg = f"Failed to uplift: {file_path}"
+                    print(error_msg)
+                    uplift_summary.append(f"\n❌ {error_msg}")
+                    send_event("uplifting_python", "log", f"❌ {error_msg}")
+                    
+            except Exception as e:
+                error_msg = f"Error processing {file_path}: {e}"
+                print(error_msg)
+                uplift_summary.append(f"\n❌ {error_msg}")
+                send_event("uplifting_python", "log", f"❌ {error_msg}")
+    
+    result_msg = f"\nUplift completed: {success_count} files successfully uplifted across {total_modules} modules"
+    print(result_msg)
+    uplift_summary.append(result_msg)
+    send_event("uplifting_python", "summary", result_msg)
+    
+    if success_count > 0:
+        send_event("uplifting_python", "status", "completed")
+    else:
+        send_event("uplifting_python", "status", "error")
+    
+    log_summary(f"ADAPTATION POD UPLIFT", "\n".join(uplift_summary))
+    return success_count > 0
+
+def uplift_repository(repo_path, uplift_config):
+    """Uplift files in a repository based on configuration."""
+    print(f"\n=== Uplifting repository: {repo_path} ===")
+    uplift_summary = []
+    uplift_summary.append(f"Repository: {repo_path}")
+    uplift_summary.append(f"Uplift Type: {uplift_config.get('type', 'unknown')}")
+    uplift_summary.append(f"Target Version: {uplift_config.get('target_version', 'unknown')}")
+    
+    # Determine stage ID based on repository and uplift type
+    uplift_type = uplift_config.get('type', 'java')
+    if uplift_type == 'java':
+        stage_id = "uplifting_essvt" if "ESSVT" in repo_path else "uplifting_source"
+    else:
+        stage_id = f"uplifting_{uplift_type}"
+    
     send_event(stage_id, "status", "running")
     
-    java_files = find_java_files(repo_path)
-    if not java_files:
-        message = f"No Java files found in {repo_path}"
+    # Special handling for adaptation pod
+    if uplift_type == 'python' and uplift_config.get('selected_modules'):
+        return uplift_adaptation_pod_modules(repo_path, uplift_config)
+    
+    # Find files based on uplift type
+    files_to_uplift = []
+    if uplift_type == 'java':
+        files_to_uplift = find_java_files(repo_path)
+        file_extensions = ['.java']
+    elif uplift_type == 'python':
+        files_to_uplift = find_python_files(repo_path)
+        file_extensions = ['.py']
+    else:
+        # For unknown types, try to find any files
+        files_to_uplift = find_files_by_extension(repo_path, ['.java', '.py', '.js', '.ts', '.cpp', '.c'])
+        file_extensions = ['.java', '.py', '.js', '.ts', '.cpp', '.c']
+    
+    if not files_to_uplift:
+        message = f"No {uplift_type} files found in {repo_path}"
         print(message)
         uplift_summary.append(f"\n{message}")
         send_event(stage_id, "log", message)
@@ -295,48 +443,61 @@ def uplift_repository(repo_path, target_jdk):
         log_summary(f"UPLIFT: {os.path.basename(repo_path).upper()}", "\n".join(uplift_summary))
         return False
     
-    uplift_summary.append(f"\nFound {len(java_files)} Java files to uplift:")
-    send_event(stage_id, "log", f"Found {len(java_files)} Java files to uplift")
-    for java_file in java_files:
-        uplift_summary.append(f"- {java_file}")
-        send_event(stage_id, "log", f"- {java_file}")
+    uplift_summary.append(f"\nFound {len(files_to_uplift)} {uplift_type} files to uplift:")
+    send_event(stage_id, "log", f"Found {len(files_to_uplift)} {uplift_type} files to uplift")
+    for file_path in files_to_uplift:
+        uplift_summary.append(f"- {file_path}")
+        send_event(stage_id, "log", f"- {file_path}")
     
     success_count = 0
-    total_files = len(java_files)
+    total_files = len(files_to_uplift)
     
-    for java_file in java_files:
-        print(f"\nProcessing: {java_file}")
-        uplift_summary.append(f"\n--- Processing: {java_file} ---")
-        send_event(stage_id, "log", f"\nProcessing: {java_file}")
+    for file_path in files_to_uplift:
+        print(f"\nProcessing: {file_path}")
+        uplift_summary.append(f"\n--- Processing: {file_path} ---")
+        send_event(stage_id, "log", f"\nProcessing: {file_path}")
         
         try:
             # Read original code
-            with open(java_file, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 original_code = f.read()
             
-            # Analyze with Modernizer
-            modernizer_findings = analyze_with_modernizer(java_file, target_jdk)
-            if modernizer_findings is None:
-                modernizer_findings = "Modernizer analysis unavailable"
+            # Get file type
+            file_type = get_file_type(file_path)
             
-            print(f"Modernizer findings: {modernizer_findings}")
-            uplift_summary.append(f"\nModernizer findings:")
+            # Analyze code based on file type
+            if file_type == 'java':
+                modernizer_findings = analyze_with_modernizer(file_path, uplift_config.get('target_version', '17'))
+                if modernizer_findings is None:
+                    modernizer_findings = "Modernizer analysis unavailable"
+            else:
+                # For non-Java files, create a simple analysis
+                modernizer_findings = f"Code analysis for {file_type} file to {uplift_config.get('target_version', 'latest')}"
+            
+            print(f"Analysis findings: {modernizer_findings}")
+            uplift_summary.append(f"\nAnalysis findings:")
             uplift_summary.append(modernizer_findings)
-            send_event(stage_id, "log", f"Modernizer findings: {modernizer_findings}")
+            send_event(stage_id, "log", f"Analysis findings: {modernizer_findings}")
             
             # Get LLM suggestion with RAG context
-            updated_code, change_summary = get_llm_suggestion(original_code, modernizer_findings, target_jdk, selected_libraries)
+            updated_code, change_summary = get_llm_suggestion(
+                original_code, 
+                modernizer_findings, 
+                uplift_config.get('target_version', 'latest'), 
+                selected_libraries,
+                file_type
+            )
             
             if updated_code:
                 # Save updated code
-                with open(java_file, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(updated_code)
                 
                 # Send LLM change event to frontend
                 llm_change_data = {
-                    "title": f"Uplifted {os.path.basename(java_file)}",
-                    "description": f"Successfully modernized Java file to JDK {target_jdk}",
-                    "file": java_file,
+                    "title": f"Uplifted {os.path.basename(file_path)}",
+                    "description": f"Successfully modernized {file_type} file to {uplift_config.get('target_version', 'latest')}",
+                    "file": file_path,
                     "stage": stage_id,
                     "details": change_summary,
                     "timestamp": datetime.datetime.now().isoformat()
@@ -348,21 +509,21 @@ def uplift_repository(repo_path, target_jdk):
                 uplift_summary.append(change_summary)
                 send_event(stage_id, "log", f"LLM Change Summary: {change_summary}")
                 
-                print(f"Successfully uplifted: {java_file}")
-                uplift_summary.append(f"\n✓ Successfully uplifted: {java_file}")
-                send_event(stage_id, "log", f"✓ Successfully uplifted: {java_file}")
+                print(f"Successfully uplifted: {file_path}")
+                uplift_summary.append(f"\n✓ Successfully uplifted: {file_path}")
+                send_event(stage_id, "log", f"✓ Successfully uplifted: {file_path}")
                 success_count += 1
             else:
-                error_msg = f"Failed to uplift: {java_file}"
+                error_msg = f"Failed to uplift: {file_path}"
                 print(error_msg)
                 uplift_summary.append(f"\n❌ {error_msg}")
                 send_event(stage_id, "log", f"❌ {error_msg}")
                 
                 # Send LLM change event for error
                 llm_change_data = {
-                    "title": f"Failed to uplift {os.path.basename(java_file)}",
-                    "description": f"Failed to modernize Java file to JDK {target_jdk}",
-                    "file": java_file,
+                    "title": f"Failed to uplift {os.path.basename(file_path)}",
+                    "description": f"Failed to modernize {file_type} file to {uplift_config.get('target_version', 'latest')}",
+                    "file": file_path,
                     "stage": stage_id,
                     "details": error_msg,
                     "timestamp": datetime.datetime.now().isoformat()
@@ -370,16 +531,16 @@ def uplift_repository(repo_path, target_jdk):
                 send_llm_change_event(llm_change_data)
                 
         except Exception as e:
-            error_msg = f"Error processing {java_file}: {e}"
+            error_msg = f"Error processing {file_path}: {e}"
             print(error_msg)
             uplift_summary.append(f"\n❌ {error_msg}")
             send_event(stage_id, "log", f"❌ {error_msg}")
             
             # Send LLM change event for exception
             llm_change_data = {
-                "title": f"Error processing {os.path.basename(java_file)}",
+                "title": f"Error processing {os.path.basename(file_path)}",
                 "description": f"Exception occurred while processing file",
-                "file": java_file,
+                "file": file_path,
                 "stage": stage_id,
                 "details": error_msg,
                 "timestamp": datetime.datetime.now().isoformat()
@@ -501,7 +662,7 @@ def send_llm_change_event(change_data):
 
 def uplift_process():
     """Run the complete uplift process with web interface support."""
-    global process_running, current_stage, process_status  # Add process_status here
+    global process_running, current_stage, process_status, uplift_config
     
     if process_running:
         print("Process is already running")
@@ -509,24 +670,32 @@ def uplift_process():
     
     process_running = True
     current_stage = "starting"
-    process_status = "RUNNING"  # Add this line to set initial status
+    process_status = "RUNNING"
     
     try:
         # Clear any previous events
         while not event_queue.empty():
             event_queue.get()
         
-        # Define stages (ESSVT stages commented out for local-only mode)
-        stages = ["baseline_tests", "uplifting_essvt", "essvt_uplifted_tests", "uplifting_source", "final_tests"]
-        # if ESSVT_CONFIG["enabled"]:
-        #     stages.extend(["essvt_validation", "final_essvt_validation"])
+        # Get uplift configuration
+        uplift_type = uplift_config.get('type', 'java')
+        target_version = uplift_config.get('target_version', '17')
+        source_path = uplift_config.get('source_path', 'repositories/ESSVT')
+        
+        # Define stages based on uplift type
+        if uplift_type == 'java':
+            stages = ["baseline_tests", "uplifting_essvt", "essvt_uplifted_tests", "uplifting_source", "final_tests"]
+        elif uplift_type == 'python':
+            stages = ["baseline_tests", "uplifting_python", "python_uplifted_tests", "uplifting_source", "final_tests"]
+        else:
+            stages = ["baseline_tests", f"uplifting_{uplift_type}", f"{uplift_type}_uplifted_tests", "uplifting_source", "final_tests"]
         
         # Send initial stage setup
         for stage in stages:
             send_event(stage, "status", "pending")
         
         # Step 1: Run baseline tests on production environment
-        print("\n📋 Step 1: Running baseline tests...")
+        print(f"\n📋 Step 1: Running baseline tests for {uplift_type}...")
         send_event("baseline_tests", "status", "running")
         baseline_output, baseline_summary = run_tests("production_env", "baseline_output")
         log_summary("BASELINE TEST EXECUTION", baseline_summary)
@@ -546,13 +715,21 @@ def uplift_process():
             send_event("system", "process_status", "finished")
             return
         
-        # Step 2: Uplift ESSVT test code
-        print("\n🔧 Step 2: Uplifting ESSVT test code...")
-        send_event("uplifting_essvt", "status", "running")
-        if not uplift_repository("repositories/ESSVT", "17"):
-            print("❌ Failed to uplift ESSVT code")
-            log_summary("UPLIFT SIMULATION ERROR", "Failed to uplift ESSVT code.")
-            send_event("uplifting_essvt", "status", "error")
+        # Step 2: Uplift test code
+        print(f"\n🔧 Step 2: Uplifting {uplift_type} test code...")
+        test_stage = f"uplifting_{uplift_type}"
+        send_event(test_stage, "status", "running")
+        
+        test_config = {
+            'type': uplift_type,
+            'target_version': target_version,
+            'source_path': source_path
+        }
+        
+        if not uplift_repository(source_path, test_config):
+            print(f"❌ Failed to uplift {uplift_type} code")
+            log_summary("UPLIFT SIMULATION ERROR", f"Failed to uplift {uplift_type} code.")
+            send_event(test_stage, "status", "error")
             process_status = "FINISHED"
             return
         
@@ -1141,23 +1318,55 @@ async def get_favicon():
     return FileResponse("ericsson.ico")
 
 @app.post("/start")
-async def start_process():
+async def start_process(request: Request):
     """Start the uplift process."""
-    global process_status, process_thread
+    global process_status, process_thread, uplift_config
     
     if process_status == "RUNNING":
         return JSONResponse(content={"success": False, "error": "Process already running"})
     
-    # Clear the event queue
-    while not event_queue.empty():
-        event_queue.get()
-    
-    # Start the process in a separate thread
-    process_thread = threading.Thread(target=uplift_process)
-    process_thread.daemon = True
-    process_thread.start()
-    
-    return JSONResponse(content={"success": True})
+    try:
+        # Get configuration from request
+        data = await request.json()
+        mode = data.get('mode', 'jdk')
+        
+        # Set uplift configuration based on mode
+        if mode == 'jdk':
+            uplift_config = {
+                'type': 'java',
+                'target_version': '17',
+                'source_path': 'repositories/ESSVT'
+            }
+        elif mode == 'adaptation_pod':
+            # For adaptation pod, we need to handle the selected modules
+            selected_modules = data.get('selected_modules', [])
+            uplift_config = {
+                'type': 'python',
+                'target_version': '3.9',
+                'source_path': 'cec-adaptation-pod-main',
+                'selected_modules': selected_modules
+            }
+        else:
+            # Default to Java
+            uplift_config = {
+                'type': 'java',
+                'target_version': '17',
+                'source_path': 'repositories/ESSVT'
+            }
+        
+        # Clear the event queue
+        while not event_queue.empty():
+            event_queue.get()
+        
+        # Start the process in a separate thread
+        process_thread = threading.Thread(target=uplift_process)
+        process_thread.daemon = True
+        process_thread.start()
+        
+        return JSONResponse(content={"success": True})
+        
+    except Exception as e:
+        return JSONResponse(content={"success": False, "error": f"Failed to start process: {str(e)}"})
 
 @app.post("/cancel")
 async def cancel_process():
