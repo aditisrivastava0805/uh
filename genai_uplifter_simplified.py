@@ -221,17 +221,19 @@ def combine_analysis_findings(llm_analysis, regex_validation):
     
     # Add LLM findings first (primary source)
     if llm_analysis and llm_analysis != "LLM analysis unavailable":
-        # Clean up LLM analysis output - remove markdown formatting and truncate if too long
-        clean_llm = llm_analysis.replace('**', '').replace('*', '')
-        if len(clean_llm) > 500:
-            clean_llm = clean_llm[:500] + "..."
-        combined.append(f"LLM Analysis: {clean_llm}")
+        # Clean up LLM analysis output - remove markdown formatting and make extremely concise
+        clean_llm = llm_analysis.replace('**', '').replace('*', '').replace('\n', ' ')
+        if len(clean_llm) > 200:  # Much shorter to save tokens
+            clean_llm = clean_llm[:200] + "..."
+        combined.append(f"Changes: {clean_llm}")
     
-    # Add regex validation findings (secondary source)
+    # Add regex validation findings (secondary source) - make concise
     if regex_validation and isinstance(regex_validation, list):
-        combined.append("Regex Validation:")
-        # Remove duplicates from regex validation
+        # Remove duplicates and make concise
         unique_regex = list(dict.fromkeys(regex_validation))  # Preserve order while removing duplicates
+        # Take only the first few items to save tokens
+        if len(unique_regex) > 3:
+            unique_regex = unique_regex[:3]
         combined.extend(unique_regex)
     
     # Always provide modernization guidance for Python 2 style code
@@ -344,17 +346,18 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     # Standard approach for all files
     print(f"📏 File size: {len(code)/1024:.1f}KB")
     
-    # Get RAG context
-    context_section = get_rag_context(code, analysis_findings, target_version, selected_libraries)
+    # Create prompt (skip RAG context to save tokens)
+    prompt = create_python_prompt(code, analysis_findings, target_version, "")
     
-    # Create prompt
-    prompt = create_python_prompt(code, analysis_findings, target_version, context_section)
+    # Debug: Show prompt size to monitor token usage
+    prompt_size_kb = len(prompt) / 1024
+    print(f"📝 Prompt size: {prompt_size_kb:.1f}KB (aiming for <4KB to leave room for response)")
     
     # Prepare payload with optimized settings for large files
     payload = {
         "prompt": prompt,
         "model": LLM_MODEL,
-        "max_new_tokens": 16384,  # Much larger for very large files
+        "max_new_tokens": 8192,  # API maximum limit
         "temperature": 0.1,
         "max_suggestions": 1,
         "top_p": 0.85,
@@ -627,25 +630,16 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
         return None, f"Error calling LLM API: {e}"
 
 def create_python_prompt(code, analysis_findings, target_version, context_section):
-    """Create a concise Python modernization prompt."""
-    return f"""
-Modernize this Python code for Python {target_version} compatibility.
+    """Create an extremely concise Python modernization prompt to save tokens."""
+    return f"""Modernize for Python {target_version}:
 
-ANALYSIS: {analysis_findings}
+{analysis_findings}
 
-REQUIREMENTS:
-- Apply ONLY the modernization opportunities identified above
-- Preserve ALL functionality, logic, and code structure exactly
-- Return the COMPLETE modernized code (no placeholders, no truncation)
-- Keep all imports, functions, classes, and business logic intact
+Rules: Apply changes above, preserve everything else, return complete code.
 
-CODE TO MODERNIZE:
 ```python
 {code}
-```
-
-Return the complete modernized code with changes applied.
-"""
+```"""
 
 
 
