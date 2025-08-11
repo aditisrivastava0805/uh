@@ -1,7 +1,11 @@
-# test_api.py
+# test_api.py (updated)
 import os
 import requests
 from dotenv import load_dotenv
+import urllib3
+
+# Disable SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Load environment variables
 load_dotenv()
@@ -33,7 +37,14 @@ headers = {
 print(f"\nTesting API connection to: {api_url}")
 
 try:
-    response = requests.post(api_url, json=test_payload, headers=headers, timeout=30)
+    # Disable SSL verification
+    response = requests.post(
+        api_url, 
+        json=test_payload, 
+        headers=headers, 
+        timeout=30,
+        verify=False  # This bypasses SSL verification
+    )
     print(f"Response status: {response.status_code}")
     print(f"Response headers: {dict(response.headers)}")
     
