@@ -248,22 +248,33 @@ def call_llm_for_analysis(analysis_prompt):
             LLM_API_URL,
             headers={"Authorization": f"Bearer {LLM_API_TOKEN}"},
             json=payload,
-            timeout=(30, 60)
+            timeout=(30, 60),
+            verify=False
         )
         
         if response.status_code == 200:
             response_data = response.json()
             print(f"🔍 LLM Analysis API Response: {response_data}")
             
-            # Try different response formats
+            # Use the same response parsing logic as the modernization function
             content = None
             
-            # Format 1: Direct content field
-            if "content" in response_data:
+            # Check for completions field (the format your API actually uses)
+            if "completions" in response_data and response_data["completions"]:
+                # Extract from completions array
+                completions = response_data["completions"]
+                if isinstance(completions, list) and len(completions) > 0:
+                    content = completions[0]  # Take first completion
+                    print(f"✅ Found content in 'completions' field: {content[:100]}...")
+                elif isinstance(completions, str):
+                    content = completions
+                    print(f"✅ Found content in 'completions' field (string): {content[:100]}...")
+            
+            # Fallback to other formats if completions not found
+            elif "content" in response_data:
                 content = response_data["content"]
                 print(f"✅ Found content in 'content' field: {content[:100]}...")
             
-            # Format 2: OpenAI-style response
             elif "choices" in response_data and response_data["choices"]:
                 choice = response_data["choices"][0]
                 if "message" in choice and "content" in choice["message"]:
@@ -273,12 +284,10 @@ def call_llm_for_analysis(analysis_prompt):
                     content = choice["text"]
                     print(f"✅ Found content in 'text' field: {content[:100]}...")
             
-            # Format 3: Generic response with text
             elif "text" in response_data:
                 content = response_data["text"]
                 print(f"✅ Found content in 'text' field: {content[:100]}...")
             
-            # Format 4: Response field
             elif "response" in response_data:
                 content = response_data["response"]
                 print(f"✅ Found content in 'response' field: {content[:100]}...")
@@ -603,16 +612,18 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
         return None, f"Error calling LLM API: {e}"
 
 def create_python_prompt(code, analysis_findings, target_version, context_section):
-    """Create a Python-specific prompt for modernization."""
+    """Create a Python-specific prompt for modernization with STRICT code preservation."""
     return f"""
 You are a Python expert specializing in CONSERVATIVE code modernization from older Python versions to newer ones.
 
-CRITICAL REQUIREMENTS:
+🚨 CRITICAL SAFETY REQUIREMENTS - READ CAREFULLY:
 1. MAINTAIN EXACT FUNCTIONALITY - Do NOT fix bugs, errors, or improve logic
 2. PRESERVE ALL EXISTING BEHAVIOR - Even if the code appears wrong or suboptimal
 3. ONLY modernize APIs, syntax, and deprecated elements for Python {target_version} compatibility
 4. If code doesn't run due to missing dependencies, leave it as-is
 5. If code has logical errors, preserve those errors exactly
+6. NEVER delete or remove any code sections, functions, classes, or imports
+7. NEVER restructure or reorganize the code
 
 The following Python code needs MINIMAL updates for Python {target_version} compatibility.
 Analysis found these modernization opportunities:
@@ -623,16 +634,16 @@ Analysis found these modernization opportunities:
 
 {context_section}
 
-Your task is to IMPLEMENT the modernization changes identified in the analysis:
+Your task is to IMPLEMENT ONLY the modernization changes identified in the analysis:
 - Replace deprecated APIs with their modern equivalents (same behavior)
 - Update syntax that won't work in Python {target_version}
 - Address specific issues from analysis findings
 - Consider Ericsson-specific patterns from the provided context
 - Keep ALL other code exactly as-is, including any bugs or runtime issues
 
-IMPORTANT: You MUST make the modernization changes identified in the analysis. Do NOT say "No modernization required" if the analysis found opportunities.
+⚠️  CRITICAL: You MUST make the modernization changes identified in the analysis. Do NOT say "No modernization required" if the analysis found opportunities.
 
-DO NOT:
+🚫 ABSOLUTELY FORBIDDEN - DO NOT:
 - Fix runtime errors unless they're due to deprecated APIs
 - Improve algorithms or logic
 - Add missing imports or dependencies
@@ -640,13 +651,27 @@ DO NOT:
 - Optimize performance
 - Change variable names or code structure
 - Add error handling
+- Delete ANY code sections, functions, classes, or imports
+- Restructure or reorganize the code
+- Remove any business logic or functionality
+- Change any function signatures or parameters
+- Modify any variable names or types
 
-PRESERVE EXACTLY:
+✅ MUST PRESERVE EXACTLY:
 - All variable names and types
-- All function signatures
+- All function signatures and parameters
+- All class definitions and methods
+- All import statements
 - All logic flow and conditions
 - Any existing bugs or issues
 - All comments and formatting
+- All business logic and functionality
+- All error handling (even if suboptimal)
+- All variable assignments and operations
+
+🔒 CODE PRESERVATION RULE:
+If you are unsure whether to change something, LEAVE IT UNCHANGED.
+It's better to preserve potentially problematic code than to accidentally delete important functionality.
 
 Format your response as:
 
@@ -719,6 +744,46 @@ def extract_updated_code(response, file_type):
     print("❌ No code extraction pattern matched")
     return None
 
+def validate_code_safety(original_code, modernized_code):
+    """Validate that no critical code was lost during modernization."""
+    
+    # Critical patterns that must be preserved
+    critical_patterns = [
+        (r'def\s+\w+', 'function definitions'),
+        (r'class\s+\w+', 'class definitions'),
+        (r'import\s+\w+', 'import statements'),
+        (r'from\s+\w+\s+import', 'from imports'),
+        (r'#.*', 'comments'),
+        (r'"""[\s\S]*?"""', 'docstrings'),
+        (r"'''[\s\S]*?'''", 'docstrings'),
+    ]
+    
+    print(f"🔒 Running code safety validation...")
+    
+    for pattern, description in critical_patterns:
+        original_count = len(re.findall(pattern, original_code, re.MULTILINE))
+        modernized_count = len(re.findall(pattern, modernized_code, re.MULTILINE))
+        
+        # Allow some flexibility for comments and docstrings
+        if description in ['comments', 'docstrings']:
+            if modernized_count < original_count * 0.8:  # Allow 20% reduction
+                print(f"⚠️  Warning: {description} reduced from {original_count} to {modernized_count}")
+        else:
+            if modernized_count < original_count:
+                print(f"❌ CRITICAL: {description} reduced from {original_count} to {modernized_count}")
+                return False
+    
+    # Check for significant code length reduction (more than 10%)
+    original_length = len(original_code)
+    modernized_length = len(modernized_code)
+    
+    if modernized_length < original_length * 0.9:
+        print(f"❌ CRITICAL: Code length reduced by more than 10% ({original_length} -> {modernized_length})")
+        return False
+    
+    print(f"✅ Code safety validation passed")
+    return True
+
 def find_python_files(directory):
     """Find all Python files in a directory recursively."""
     python_files = []
@@ -775,6 +840,14 @@ def modernize_adaptation_pod_scripts(repo_path, target_python_version="3.9", sel
             )
             
             if updated_code:
+                # Safety check: Ensure no critical code was lost
+                safety_check_passed = validate_code_safety(original_code, updated_code)
+                
+                if not safety_check_passed:
+                    print(f"❌ SAFETY CHECK FAILED: Critical code may have been lost in {file_path}")
+                    print(f"🔄 Restoring from backup and skipping modernization")
+                    continue
+                
                 # Create backup
                 backup_file = file_path + ".backup"
                 with open(backup_file, 'w', encoding='utf-8') as f:
