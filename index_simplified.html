@@ -491,7 +491,10 @@
                         <button id="startBtn" class="btn btn-primary">🚀 Start Python Modernization</button>
                         <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
                         <button id="cancelBtn" class="btn btn-danger" style="display: none;">❌ Cancel</button>
-                        <button id="testEventsBtn" class="btn btn-secondary" style="margin-top: 10px;">🧪 Test Events</button>
+                        <div style="margin-top: 20px;">
+                            <button type="button" id="testEventsBtn" class="btn btn-info" style="margin-right: 10px;">Test Events</button>
+                            <button type="button" id="testModernizationBtn" class="btn btn-warning">Test Modernization</button>
+                        </div>
                         <div id="connectionStatus" style="margin-top: 10px; font-size: 12px; color: #666;">
                             🔴 Event stream: Disconnected
                         </div>
@@ -641,6 +644,7 @@
             
             // Test events button
             document.getElementById('testEventsBtn').addEventListener('click', testEvents);
+            document.getElementById('testModernizationBtn').addEventListener('click', testModernization);
         }
 
         function loadLibraries() {
@@ -975,26 +979,51 @@
         }
 
         function testEvents() {
-            // First ensure event stream is connected
-            if (!eventSource || eventSource.readyState !== EventSource.OPEN) {
-                console.log('🔄 Reconnecting event stream for test...');
-                startEventStream();
-            }
-            
             fetch('/api/test-events', {
                 method: 'POST'
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'success') {
-                    showNotification('Test events sent - check console and stages', 'success');
-                } else {
-                    showNotification('Error sending test events: ' + data.message, 'error');
+                console.log('Test events response:', data);
+                showNotification('Test events sent', 'info');
+                
+                // Reconnect event stream if it's not open
+                if (eventSource && eventSource.readyState !== EventSource.OPEN) {
+                    console.log('🔄 Reconnecting event stream...');
+                    startEventStream();
                 }
             })
             .catch(error => {
                 console.error('Error testing events:', error);
                 showNotification('Error testing events', 'error');
+            });
+        }
+
+        function testModernization() {
+            if (processRunning) {
+                showNotification('Process already running', 'warning');
+                return;
+            }
+            
+            console.log('🧪 Testing modernization with SDP_SPLUNK_FORWARDER_TRAFFIC_HANDLER...');
+            
+            fetch('/api/test-modernization', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Test modernization response:', data);
+                if (data.status === 'started') {
+                    showNotification('Test modernization started', 'success');
+                    startEventStream();
+                    updateUIForRunning();
+                } else {
+                    showNotification('Error starting test: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error testing modernization:', error);
+                showNotification('Error testing modernization', 'error');
             });
         }
 

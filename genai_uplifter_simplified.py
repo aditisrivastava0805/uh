@@ -43,19 +43,41 @@ def get_rag_context(python_code, analysis_findings, target_python_version, selec
         if analysis_findings and "analysis" in analysis_findings.lower():
             modernization_summary += f": {analysis_findings}"
         
-        # Use the new extract_java_guidance function (works for Python too)
+        # Use Python-specific RAG guidance
+        from rag_utils import get_available_libraries
+        
+        # Get available Python libraries
+        available_libraries = get_available_libraries()
+        
+        # Filter for Python-related libraries
+        python_libraries = []
+        for lib in available_libraries:
+            if any(keyword in lib.lower() for keyword in ['python', 'pip', 'pypi', 'modernization', 'syntax']):
+                python_libraries.append(lib)
+        
+        # If no Python-specific libraries found, use general libraries
+        if not python_libraries:
+            python_libraries = available_libraries[:5]  # Use first 5 libraries
+        
+        # Create Python-specific guidance query
+        guidance_query = f"Python {target_python_version} modernization best practices"
+        if analysis_findings:
+            guidance_query += f" for: {analysis_findings}"
+        
+        # Use the extract_java_guidance function but with Python context
+        from rag_utils import extract_java_guidance
         guidance_result = extract_java_guidance(
-            code_issue=modernization_summary,
-            context=f"Target Python: {target_python_version}"
+            code_issue=guidance_query,
+            context=f"Target Python version: {target_python_version}. Focus on Python modernization, not Java."
         )
         
         if guidance_result.get("guidance_found"):
             # Format the guidance for the LLM prompt
             context_parts = []
-            context_parts.append(f"GUIDANCE SUMMARY: {guidance_result['summary']}")
+            context_parts.append(f"PYTHON MODERNIZATION GUIDANCE: {guidance_result['summary']}")
             
             if guidance_result.get("detailed_guidance"):
-                context_parts.append("\nDETAILED GUIDANCE:")
+                context_parts.append("\nDETAILED PYTHON GUIDANCE:")
                 for item in guidance_result["detailed_guidance"][:3]:  # Limit to top 3
                     source = item.get("source", "Unknown")
                     content = item.get("content", "")[:300]  # Limit content length
@@ -63,15 +85,15 @@ def get_rag_context(python_code, analysis_findings, target_python_version, selec
             
             libraries_used = guidance_result.get("libraries_searched", [])
             if libraries_used:
-                context_parts.append(f"\nSources: {', '.join(libraries_used[:3])}")
+                context_parts.append(f"\nPython Sources: {', '.join(libraries_used[:3])}")
             
             return "\n".join(context_parts)
         else:
-            return "No specific RAG guidance found for this Python modernization scenario."
+            return "No specific Python RAG guidance found for this modernization scenario."
             
     except Exception as e:
         print(f"Warning: Error getting RAG context: {e}")
-        return "RAG context unavailable due to error."
+        return "Python RAG context unavailable due to error."
 
 def analyze_python_code(python_file_path, target_python_version):
     """Analyze Python code for modernization opportunities."""

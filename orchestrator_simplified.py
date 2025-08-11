@@ -147,28 +147,58 @@ def modernize_adaptation_pod_scripts(repo_path, uplift_config):
     print(f"\n=== Modernizing Adaptation Pod Scripts ===")
     print(f"Repository: {repo_path}")
     print(f"Target Python Version: {uplift_config.get('target_version', '3.9')}")
+    print(f"Selected Modules: {uplift_config.get('selected_modules', [])}")
+    
+    # Debug: Print the full config received
+    print(f"🔍 DEBUG: Full uplift_config received: {uplift_config}")
+    print(f"🔍 DEBUG: Config type: {type(uplift_config)}")
+    print(f"🔍 DEBUG: Config keys: {list(uplift_config.keys()) if isinstance(uplift_config, dict) else 'Not a dict'}")
     
     uplift_summary = []
     uplift_summary.append(f"Repository: {repo_path}")
     uplift_summary.append(f"Uplift Type: {uplift_config.get('type', 'python')}")
     uplift_summary.append(f"Target Version: {uplift_config.get('target_version', '3.9')}")
+    uplift_summary.append(f"Selected Modules: {uplift_config.get('selected_modules', [])}")
     
     send_event("modernizing_python", "status", "running")
     
     # Find all Python files
-    python_files = find_python_files(repo_path)
+    all_python_files = find_python_files(repo_path)
+    
+    # Filter files based on selected modules
+    selected_modules = uplift_config.get('selected_modules', [])
+    print(f"🔍 DEBUG: selected_modules extracted: {selected_modules}")
+    print(f"🔍 DEBUG: selected_modules type: {type(selected_modules)}")
+    print(f"🔍 DEBUG: selected_modules length: {len(selected_modules) if selected_modules else 0}")
+    
+    if selected_modules:
+        python_files = []
+        for file_path in all_python_files:
+            # Check if file path contains any of the selected modules
+            file_included = False
+            for module in selected_modules:
+                if module.lower() in file_path.lower():
+                    python_files.append(file_path)
+                    file_included = True
+                    break
+            if not file_included:
+                print(f"Skipping {file_path} - not in selected modules")
+    else:
+        # If no modules selected, process all files
+        print("🔍 DEBUG: No selected modules found, processing all files")
+        python_files = all_python_files
     
     if not python_files:
-        message = f"No Python files found in {repo_path}"
+        message = f"No Python files found for selected modules in {repo_path}"
         print(message)
         uplift_summary.append(f"\n{message}")
         send_event("modernizing_python", "log", message)
         send_event("modernizing_python", "status", "error")
         return False
     
-    print(f"Found {len(python_files)} Python files to process")
-    uplift_summary.append(f"\nFound {len(python_files)} Python files to process")
-    send_event("modernizing_python", "log", f"Found {len(python_files)} Python files to process")
+    print(f"Found {len(python_files)} Python files to process for selected modules")
+    uplift_summary.append(f"\nFound {len(python_files)} Python files to process for selected modules")
+    send_event("modernizing_python", "log", f"Found {len(python_files)} Python files to process for selected modules")
     
     success_count = 0
     total_files = len(python_files)
@@ -281,12 +311,16 @@ def send_llm_change_event(change_data):
 
 def modernization_process():
     """Main modernization process."""
-    global process_running, current_stage, process_status
+    global process_running, current_stage, process_status, uplift_config, selected_libraries
     
     try:
         process_running = True
         process_status = "RUNNING"
         current_stage = "starting"
+        
+        # Debug: Print the current config state
+        print(f"🔍 DEBUG: modernization_process started with config: {uplift_config}")
+        print(f"🔍 DEBUG: selected_libraries: {selected_libraries}")
         
         send_event("process", "status", "started")
         send_event("process", "log", "Starting Python modernization process...")
@@ -314,6 +348,11 @@ def modernization_process():
             send_event("process", "status", "error")
             send_event("process", "log", f"Adaptation pod repository not found: {adaptation_pod_path}")
             return False
+        
+        # Debug: Print the config being passed to the function
+        print(f"🔍 DEBUG: Calling modernize_adaptation_pod_scripts with config: {uplift_config}")
+        print(f"🔍 DEBUG: Config type: {type(uplift_config)}")
+        print(f"🔍 DEBUG: Config keys: {list(uplift_config.keys()) if isinstance(uplift_config, dict) else 'Not a dict'}")
         
         success = modernize_adaptation_pod_scripts(adaptation_pod_path, uplift_config)
         
@@ -452,6 +491,40 @@ async def test_events():
     send_event("completed", "status", "completed")
     send_event("completed", "log", "Test event - completed stage")
     return JSONResponse({"status": "success", "message": "Test events sent"})
+
+@app.post("/api/test-modernization")
+async def test_modernization():
+    """Test endpoint to manually trigger modernization with specific config."""
+    global process_running, process_thread, uplift_config, selected_libraries
+    
+    if process_running:
+        return JSONResponse({"status": "error", "message": "Process already running"})
+    
+    try:
+        # Set a test config manually
+        uplift_config = {
+            "type": "python",
+            "target_version": "3.9",
+            "selected_modules": ["SDP_SPLUNK_FORWARDER_TRAFFIC_HANDLER"]
+        }
+        selected_libraries = []
+        
+        print(f"🧪 TEST: Manually setting config: {uplift_config}")
+        print(f"🧪 TEST: Selected libraries: {selected_libraries}")
+        
+        # Start process in background thread
+        process_thread = threading.Thread(target=modernization_process)
+        process_thread.daemon = True
+        process_thread.start()
+        
+        return JSONResponse({
+            "status": "started", 
+            "message": "Test modernization started with SDP_SPLUNK_FORWARDER_TRAFFIC_HANDLER",
+            "config": uplift_config
+        })
+        
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": f"Error starting test process: {e}"})
 
 @app.get("/stream")
 async def event_stream(request: Request):
