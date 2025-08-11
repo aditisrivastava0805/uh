@@ -346,8 +346,16 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     # Standard approach for all files
     print(f"📏 File size: {len(code)/1024:.1f}KB")
     
-    # Use direct modernization for all files (GPT-4 can handle large files)
-    print(f"📏 File size: {len(code)/1024:.1f}KB - using direct modernization with GPT-4")
+    # Check if file needs chunking based on API limits
+    file_size_kb = len(code) / 1024
+    estimated_tokens = len(code) * 0.8  # Rough estimate: 1KB ≈ 800 tokens
+    
+    if estimated_tokens > 6000:  # If estimated tokens > 6K, need chunking
+        print(f"📏 Large file detected ({file_size_kb:.1f}KB) - using smart chunking for API limits")
+        return modernize_with_smart_chunking(code, analysis_findings, target_version, selected_libraries, file_type)
+    
+    # Use direct modernization for smaller files
+    print(f"📏 File size: {file_size_kb:.1f}KB - using direct modernization")
     
     # Create prompt (skip RAG context to save tokens)
     prompt = create_python_prompt(code, analysis_findings, target_version, "")
@@ -356,11 +364,11 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     prompt_size_kb = len(prompt) / 1024
     print(f"📝 Prompt size: {prompt_size_kb:.1f}KB (aiming for <4KB to leave room for response)")
     
-    # Prepare payload with optimized settings for large files
+    # Prepare payload with API-compatible settings
     payload = {
         "prompt": prompt,
         "model": LLM_MODEL,
-        "max_new_tokens": 8192,  # Safe limit that works with most models
+        "max_new_tokens": 8192,  # Stay within ELI API limits
         "temperature": 0.1,
         "max_suggestions": 1,
         "top_p": 0.85,
@@ -632,25 +640,129 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
         
         return None, f"Error calling LLM API: {e}"
 
-def create_python_prompt(code, analysis_findings, target_version, context_section):
-    """Create a simple, effective Python modernization prompt for GPT-4."""
+def modernize_with_smart_chunking(code, analysis_findings, target_version, selected_libraries=None, file_type='python'):
+    """Modernize large files by splitting them into API-compatible chunks."""
+    print(f"🔄 Starting smart chunking for API compatibility...")
     
-    return f"""Modernize this Python code for Python {target_version} compatibility.
+    # Split code into chunks that fit within API limits
+    chunks = split_code_into_api_chunks(code)
+    print(f"📦 Split code into {len(chunks)} API-compatible chunks")
+    
+    modernized_chunks = []
+    change_summary_parts = []
+    
+    for i, chunk in enumerate(chunks):
+        print(f"🔄 Processing chunk {i+1}/{len(chunks)}: {len(chunk['code'])/1024:.1f}KB")
+        
+        # Create prompt for this chunk
+        chunk_prompt = create_python_prompt(chunk['code'], analysis_findings, target_version, "")
+        
+        # Check if chunk fits within API limits
+        if len(chunk_prompt) > 4000:  # If prompt > 4KB, chunk is too large
+            print(f"⚠️  Chunk {i+1} is too large, subdividing...")
+            sub_chunks = split_code_into_api_chunks(chunk['code'])
+            for j, sub_chunk in enumerate(sub_chunks):
+                sub_result = modernize_single_chunk(sub_chunk, analysis_findings, target_version)
+                if sub_result:
+                    modernized_chunks.append(sub_result['code'])
+                    change_summary_parts.append(f"Chunk {i+1}.{j+1}: {sub_result['summary']}")
+        else:
+            # Process chunk normally
+            chunk_result = modernize_single_chunk(chunk, analysis_findings, target_version)
+            if chunk_result:
+                modernized_chunks.append(chunk_result['code'])
+                change_summary_parts.append(f"Chunk {i+1}: {chunk_result['summary']}")
+            else:
+                print(f"⚠️  Chunk {i+1} failed, using fallback")
+                fallback_result = modernize_chunk_with_fallback(chunk, target_version)
+                modernized_chunks.append(fallback_result['code'])
+                change_summary_parts.append(f"Chunk {i+1}: Fallback modernization")
+    
+    # Reassemble the modernized chunks
+    print(f"🔧 Reassembling {len(modernized_chunks)} chunks...")
+    final_code = '\n'.join(modernized_chunks)
+    
+    # Combine change summaries
+    final_summary = f"Large file modernized using smart chunking:\n" + "\n".join(change_summary_parts)
+    
+    print(f"✅ Smart chunking completed successfully")
+    return final_code, final_summary
 
-ANALYSIS: {analysis_findings}
+def split_code_into_api_chunks(code):
+    """Split code into chunks that fit within API token limits."""
+    lines = code.split('\n')
+    chunks = []
+    
+    # Target chunk size: 3KB (leaving room for prompt overhead)
+    target_chunk_size = 3000
+    current_chunk = []
+    current_chunk_size = 0
+    chunk_number = 1
+    
+    for line in lines:
+        line_size = len(line) + 1  # +1 for newline
+        
+        # If adding this line would exceed target size, start new chunk
+        if current_chunk_size + line_size > target_chunk_size and current_chunk:
+            # Try to find a better break point (blank line or function boundary)
+            better_break = False
+            
+            # Look for blank lines in the last few lines of current chunk
+            for j in range(len(current_chunk) - 1, max(0, len(current_chunk) - 5), -1):
+                if current_chunk[j].strip() == '':
+                    # Found a blank line - break here
+                    chunks.append({
+                        'name': f'Chunk_{chunk_number}',
+                        'code': '\n'.join(current_chunk[:j+1]).rstrip(),
+                        'start_line': 0,
+                        'end_line': 0
+                    })
+                    # Start new chunk with remaining lines
+                    current_chunk = current_chunk[j+1:] + [line]
+                    current_chunk_size = sum(len(l) + 1 for l in current_chunk)
+                    better_break = True
+                    break
+            
+            if not better_break:
+                # No good break point found, just break here
+                chunks.append({
+                    'name': f'Chunk_{chunk_number}',
+                    'code': '\n'.join(current_chunk).rstrip(),
+                    'start_line': 0,
+                    'end_line': 0
+                })
+                current_chunk = [line]
+                current_chunk_size = line_size
+            
+            chunk_number += 1
+        else:
+            # Add line to current chunk
+            current_chunk.append(line)
+            current_chunk_size += line_size
+    
+    # Add the last chunk
+    if current_chunk:
+        chunks.append({
+            'name': f'Chunk_{chunk_number}',
+            'code': '\n'.join(current_chunk).rstrip(),
+            'start_line': 0,
+            'end_line': 0
+        })
+    
+    return chunks
 
-REQUIREMENTS:
-- Apply ONLY the modernization opportunities identified above
-- Preserve ALL functionality, logic, and code structure exactly
-- Return the COMPLETE modernized code (no placeholders, no truncation)
-- Keep all imports, functions, classes, and business logic intact
+def create_python_prompt(code, analysis_findings, target_version, context_section):
+    """Create a concise Python modernization prompt to save tokens."""
+    
+    return f"""Python {target_version} modernization:
 
-CODE TO MODERNIZE:
+{analysis_findings}
+
+Apply changes, preserve everything else, return complete code.
+
 ```python
 {code}
-```
-
-Return the complete modernized code with changes applied."""
+```"""
 
 
 
