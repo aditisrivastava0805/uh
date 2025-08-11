@@ -348,21 +348,32 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     
     # Check if file needs chunking based on API limits
     file_size_kb = len(code) / 1024
-    estimated_tokens = len(code) * 0.8  # Rough estimate: 1KB ≈ 800 tokens
+    estimated_tokens = estimate_tokens_accurately(code)
     
-    if estimated_tokens > 6000:  # If estimated tokens > 6K, need chunking
-        print(f"📏 Large file detected ({file_size_kb:.1f}KB) - using smart chunking for API limits")
+    # With 8192 total limit, we need to leave room for prompt + response
+    # Prompt: ~1500 tokens, Response: ~1500 tokens, Code: ~5200 tokens max
+    if estimated_tokens > 5200:  # If estimated tokens > 5.2K, need chunking
+        print(f"📏 Large file detected ({file_size_kb:.1f}KB, ~{estimated_tokens:.0f} tokens) - using smart chunking for API limits")
         return modernize_with_smart_chunking(code, analysis_findings, target_version, selected_libraries, file_type)
     
     # Use direct modernization for smaller files
-    print(f"📏 File size: {file_size_kb:.1f}KB - using direct modernization")
+    print(f"📏 File size: {file_size_kb:.1f}KB (~{estimated_tokens:.0f} tokens) - using direct modernization")
     
     # Create prompt (skip RAG context to save tokens)
     prompt = create_python_prompt(code, analysis_findings, target_version, "")
     
     # Debug: Show prompt size to monitor token usage
     prompt_size_kb = len(prompt) / 1024
-    print(f"📝 Prompt size: {prompt_size_kb:.1f}KB (aiming for <4KB to leave room for response)")
+    prompt_tokens = estimate_tokens_accurately(prompt)
+    print(f"📝 Prompt size: {prompt_size_kb:.1f}KB (~{prompt_tokens:.0f} tokens)")
+    
+    # Calculate total tokens needed
+    total_tokens_needed = prompt_tokens + estimated_tokens + 1500  # +1500 for response
+    print(f"📊 Total tokens needed: {total_tokens_needed:.0f} (limit: 8192)")
+    
+    if total_tokens_needed > 8192:
+        print(f"⚠️  Token limit exceeded ({total_tokens_needed:.0f} > 8192), falling back to chunking")
+        return modernize_with_smart_chunking(code, analysis_findings, target_version, selected_libraries, file_type)
     
     # Prepare payload with API-compatible settings
     payload = {
@@ -655,6 +666,10 @@ def modernize_with_smart_chunking(code, analysis_findings, target_version, selec
     # Ensure all imports are in the first chunk
     chunks = ensure_imports_in_first_chunk(chunks)
     
+    # Validate that all chunks fit within the API limits
+    print(f"🔍 Validating chunks for API compatibility...")
+    chunks = ensure_chunks_fit_api(chunks, analysis_findings, target_version)
+    
     modernized_chunks = []
     change_summary_parts = []
     
@@ -664,26 +679,16 @@ def modernize_with_smart_chunking(code, analysis_findings, target_version, selec
         # Create prompt for this chunk
         chunk_prompt = create_python_prompt(chunk['code'], analysis_findings, target_version, "")
         
-        # Check if chunk fits within API limits
-        if len(chunk_prompt) > 4000:  # If prompt > 4KB, chunk is too large
-            print(f"⚠️  Chunk {i+1} is too large, subdividing...")
-            sub_chunks = split_code_into_api_chunks(chunk['code'])
-            for j, sub_chunk in enumerate(sub_chunks):
-                sub_result = modernize_single_chunk(sub_chunk, analysis_findings, target_version)
-                if sub_result:
-                    modernized_chunks.append(sub_result['code'])
-                    change_summary_parts.append(f"Chunk {i+1}.{j+1}: {sub_result['summary']}")
+        # Process chunk normally (validation already ensured it fits)
+        chunk_result = modernize_single_chunk(chunk, analysis_findings, target_version)
+        if chunk_result:
+            modernized_chunks.append(chunk_result['code'])
+            change_summary_parts.append(f"Chunk {i+1}: {chunk_result['summary']}")
         else:
-            # Process chunk normally
-            chunk_result = modernize_single_chunk(chunk, analysis_findings, target_version)
-            if chunk_result:
-                modernized_chunks.append(chunk_result['code'])
-                change_summary_parts.append(f"Chunk {i+1}: {chunk_result['summary']}")
-            else:
-                print(f"⚠️  Chunk {i+1} failed, using fallback")
-                fallback_result = modernize_chunk_with_fallback(chunk, target_version)
-                modernized_chunks.append(fallback_result['code'])
-                change_summary_parts.append(f"Chunk {i+1}: Fallback modernization")
+            print(f"⚠️  Chunk {i+1} failed, using fallback")
+            fallback_result = modernize_chunk_with_fallback(chunk, target_version)
+            modernized_chunks.append(fallback_result['code'])
+            change_summary_parts.append(f"Chunk {i+1}: Fallback modernization")
     
     # Reassemble the modernized chunks with structure validation
     print(f"🔧 Reassembling {len(modernized_chunks)} chunks...")
@@ -706,8 +711,13 @@ def split_code_into_api_chunks(code):
     lines = code.split('\n')
     chunks = []
     
-    # Target chunk size: 3KB (leaving room for prompt overhead)
-    target_chunk_size = 3000
+    # Target chunk size: 6KB (leaving room for prompt overhead within 8192 limit)
+    # With 8192 total limit:
+    # - Prompt: ~1.5KB (~675 tokens)
+    # - Code: ~6KB (~2700 tokens) 
+    # - Response: ~1.5KB (~675 tokens)
+    # Total: ~4050 tokens, well within 8192 limit
+    target_chunk_size = 6000
     current_chunk = []
     current_chunk_size = 0
     chunk_number = 1
@@ -771,14 +781,20 @@ def analyze_code_structure(lines):
         'functions': [],
         'classes': [],
         'blocks': [],
-        'imports': []
+        'imports': [],
+        'decorators': [],
+        'context_managers': []
     }
     
     current_indent = 0
     in_function = False
     in_class = False
+    in_try_block = False
+    in_with_block = False
     function_start = -1
     class_start = -1
+    try_start = -1
+    with_start = -1
     
     for i, line in enumerate(lines):
         stripped = line.strip()
@@ -809,6 +825,20 @@ def analyze_code_structure(lines):
         if stripped.startswith(('import ', 'from ')):
             structure['imports'].append(i)
         
+        # Detect decorators
+        if stripped.startswith('@'):
+            structure['decorators'].append(i)
+        
+        # Detect try blocks
+        if stripped.startswith('try:'):
+            in_try_block = True
+            try_start = i
+        
+        # Detect with blocks
+        if stripped.startswith('with '):
+            in_with_block = True
+            with_start = i
+        
         # Detect block endings
         if in_function and current_indent == 0 and stripped and not stripped.startswith(('def ', 'class ')):
             if not stripped.startswith('#'):
@@ -821,12 +851,30 @@ def analyze_code_structure(lines):
                 in_class = False
                 structure['classes'].append((class_start, i - 1))
                 class_start = -1
+        
+        # Detect try/except/finally endings
+        if in_try_block and stripped.startswith(('except', 'finally')):
+            if current_indent == 0:  # Top-level except/finally
+                in_try_block = False
+                structure['blocks'].append(('try', try_start, i - 1))
+                try_start = -1
+        
+        # Detect with statement endings
+        if in_with_block and current_indent == 0 and stripped and not stripped.startswith('with '):
+            if not stripped.startswith('#'):
+                in_with_block = False
+                structure['context_managers'].append((with_start, i - 1))
+                with_start = -1
     
     # Handle any remaining open structures
     if in_function:
         structure['functions'].append((function_start, len(lines) - 1))
     if in_class:
         structure['classes'].append((class_start, len(lines) - 1))
+    if in_try_block:
+        structure['blocks'].append(('try', try_start, len(lines) - 1))
+    if in_with_block:
+        structure['context_managers'].append((with_start, len(lines) - 1))
     
     return structure
 
@@ -852,7 +900,19 @@ def find_structural_break_point(chunk_lines, code_structure, chunk_start_line):
                 return i
         
         # End of complete block
-        if line in ['pass', 'return', 'break', 'continue', 'raise'] and is_at_top_level(current_line, code_structure):
+        if line in ['pass', 'return', 'break', 'continue', 'raise', 'yield'] and is_at_top_level(current_line, code_structure):
+            return i + 1
+        
+        # End of context manager
+        if line == ')' and i > 0 and 'with ' in chunk_lines[i-1]:
+            return i + 1
+        
+        # End of multi-line expression
+        if line == ')' and i > 0 and chunk_lines[i-1].strip().endswith(','):
+            return i + 1
+        
+        # End of list/dict comprehension
+        if line == ']' and i > 0 and chunk_lines[i-1].strip().endswith(','):
             return i + 1
     
     # If no perfect break point, look for reasonable ones
@@ -867,6 +927,10 @@ def find_structural_break_point(chunk_lines, code_structure, chunk_start_line):
         if line.startswith('#'):
             if i > 0 and not chunk_lines[i-1].strip().startswith('#'):
                 return i + 1
+        
+        # End of docstring
+        if line.endswith('"""') or line.endswith("'''"):
+            return i + 1
     
     # Last resort: break at a reasonable point, but avoid breaking functions/classes
     safe_break = find_safe_break_point(chunk_lines, code_structure, chunk_start_line)
@@ -883,10 +947,10 @@ def is_at_top_level(line_number, code_structure):
     return True
 
 def find_safe_break_point(chunk_lines, code_structure, chunk_start_line):
-    """Find a safe break point that doesn't break functions or classes."""
+    """Find a safe break point that doesn't break functions, classes, or other structures."""
     chunk_end_line = chunk_start_line + len(chunk_lines) - 1
     
-    # Check if we're inside a function or class
+    # Check if we're inside a function
     for start, end in code_structure['functions']:
         if start <= chunk_start_line <= end:
             # We're inside a function, find its end
@@ -896,6 +960,7 @@ def find_safe_break_point(chunk_lines, code_structure, chunk_start_line):
                 # Function extends beyond this chunk, don't break
                 return 0
     
+    # Check if we're inside a class
     for start, end in code_structure['classes']:
         if start <= chunk_start_line <= end:
             # We're inside a class, find its end
@@ -904,6 +969,32 @@ def find_safe_break_point(chunk_lines, code_structure, chunk_start_line):
             else:
                 # Class extends beyond this chunk, don't break
                 return 0
+    
+    # Check if we're inside a try block
+    for block_type, start, end in code_structure['blocks']:
+        if start <= chunk_start_line <= end:
+            # We're inside a block, find its end
+            if end <= chunk_end_line:
+                return end - chunk_start_line + 1
+            else:
+                # Block extends beyond this chunk, don't break
+                return 0
+    
+    # Check if we're inside a context manager
+    for start, end in code_structure['context_managers']:
+        if start <= chunk_start_line <= end:
+            # We're inside a context manager, find its end
+            if end <= chunk_end_line:
+                return end - chunk_start_line + 1
+            else:
+                # Context manager extends beyond this chunk, don't break
+                return 0
+    
+    # Check if we're inside decorators
+    for decorator_line in code_structure['decorators']:
+        if decorator_line <= chunk_start_line <= decorator_line + 2:  # Decorator + function definition
+            # Don't break in the middle of decorator + function
+            return 0
     
     # We're at top level, safe to break
     return max(1, len(chunk_lines) // 2)
@@ -1065,11 +1156,12 @@ def validate_reassembled_code(code):
                 
             current_indent = len(line) - len(line.lstrip())
             
-            # Check for indentation errors - allow for nested structures
+            # Check for indentation errors - allow for deeply nested structures
             if current_indent > 0 and indent_stack:
-                # Allow indentation up to 8 spaces more than the previous level
-                # This handles nested structures like dictionaries, lists, etc.
-                max_allowed = indent_stack[-1] + 8
+                # Allow indentation up to 20 spaces more than the previous level
+                # This handles deeply nested structures like dictionaries, lists, etc.
+                # Python allows unlimited nesting, so we need to be generous
+                max_allowed = indent_stack[-1] + 20
                 if current_indent > max_allowed:
                     print(f"⚠️  Indentation error at line {line_number}: unexpected indentation level {current_indent} (expected max {max_allowed})")
                     return False
@@ -1077,7 +1169,7 @@ def validate_reassembled_code(code):
             # Track indentation changes
             if stripped.endswith(':'):
                 indent_stack.append(current_indent)
-            elif stripped in ['pass', 'return', 'break', 'continue', 'raise']:
+            elif stripped in ['pass', 'return', 'break', 'continue', 'raise', 'yield']:
                 if indent_stack:
                     indent_stack.pop()
         
@@ -1638,6 +1730,85 @@ def ensure_imports_in_first_chunk(chunks):
         print("📦 All imports already present in first chunk")
     
     return chunks
+
+def estimate_tokens_accurately(code):
+    """More accurate token estimation for Python code."""
+    # Python code is typically more token-efficient than plain text
+    # Rough estimate: 1KB ≈ 400-500 tokens for Python code
+    # This is more conservative and realistic than the previous 0.8 ratio
+    
+    # Simple heuristic: Python code is more structured, so fewer tokens per byte
+    base_ratio = 0.45  # 1KB ≈ 450 tokens
+    
+    # Adjust based on code characteristics
+    lines = code.split('\n')
+    total_lines = len(lines)
+    non_empty_lines = len([l for l in lines if l.strip()])
+    
+    # More lines = more tokens (newlines, indentation, etc.)
+    if total_lines > 100:
+        base_ratio += 0.05  # +5% for very long files
+    elif total_lines > 50:
+        base_ratio += 0.02  # +2% for medium files
+    
+    # More non-empty lines = more actual code = more tokens
+    if non_empty_lines > 80:
+        base_ratio += 0.03  # +3% for code-heavy files
+    
+    # Estimate tokens
+    estimated_tokens = len(code) * base_ratio
+    
+    return estimated_tokens
+
+def validate_chunk_for_api(chunk_code, prompt_template, analysis_findings, target_version):
+    """Validate that a chunk will fit within the 8192 token limit."""
+    # Create the full prompt for this chunk
+    full_prompt = create_python_prompt(chunk_code, analysis_findings, target_version, "")
+    
+    # Estimate tokens
+    prompt_tokens = estimate_tokens_accurately(full_prompt)
+    code_tokens = estimate_tokens_accurately(chunk_code)
+    
+    # Calculate total tokens needed
+    total_tokens = prompt_tokens + code_tokens + 1500  # +1500 for response
+    
+    # Check if it fits
+    fits = total_tokens <= 8192
+    
+    if not fits:
+        print(f"⚠️  Chunk too large: {prompt_tokens:.0f} + {code_tokens:.0f} + 1500 = {total_tokens:.0f} > 8192")
+    
+    return fits, total_tokens, prompt_tokens, code_tokens
+
+def ensure_chunks_fit_api(chunks, analysis_findings, target_version):
+    """Ensure all chunks fit within the API limits, subdividing if necessary."""
+    validated_chunks = []
+    
+    for i, chunk in enumerate(chunks):
+        fits, total_tokens, prompt_tokens, code_tokens = validate_chunk_for_api(
+            chunk['code'], "", analysis_findings, target_version
+        )
+        
+        if fits:
+            validated_chunks.append(chunk)
+            print(f"✅ Chunk {i+1}: {total_tokens:.0f} tokens - fits API limit")
+        else:
+            print(f"⚠️  Chunk {i+1} too large ({total_tokens:.0f} tokens), subdividing...")
+            # Subdivide this chunk
+            sub_chunks = split_code_into_api_chunks(chunk['code'])
+            for j, sub_chunk in enumerate(sub_chunks):
+                sub_fits, sub_total, _, _ = validate_chunk_for_api(
+                    sub_chunk['code'], "", analysis_findings, target_version
+                )
+                if sub_fits:
+                    validated_chunks.append(sub_chunk)
+                    print(f"  ✅ Sub-chunk {i+1}.{j+1}: {sub_total:.0f} tokens - fits API limit")
+                else:
+                    print(f"  ❌ Sub-chunk {i+1}.{j+1}: {sub_total:.0f} tokens - still too large")
+                    # This shouldn't happen with proper chunk sizing, but handle it
+                    validated_chunks.append(sub_chunk)
+    
+    return validated_chunks
 
 if __name__ == "__main__":
     import sys
