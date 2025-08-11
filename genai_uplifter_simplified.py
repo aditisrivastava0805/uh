@@ -198,7 +198,7 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
             LLM_API_URL, 
             json=payload, 
             headers=headers, 
-            timeout=60,
+            timeout=120,
             verify=False  # Disable SSL verification for corporate API
         )
         
