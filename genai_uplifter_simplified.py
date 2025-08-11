@@ -76,15 +76,18 @@ def get_rag_context(python_code, analysis_findings, target_python_version, selec
             context_parts = []
             context_parts.append(f"PYTHON MODERNIZATION GUIDANCE: {guidance_result['summary']}")
             
-            if guidance_result.get("detailed_guidance"):
+            detailed_guidance = guidance_result.get("detailed_guidance")
+            if detailed_guidance and isinstance(detailed_guidance, list):
                 context_parts.append("\nDETAILED PYTHON GUIDANCE:")
-                for item in guidance_result["detailed_guidance"][:3]:  # Limit to top 3
-                    source = item.get("source", "Unknown")
-                    content = item.get("content", "")[:300]  # Limit content length
-                    context_parts.append(f"- From {source}: {content}")
+                # Safely slice the list, ensuring it's a list first
+                for item in detailed_guidance[:3]:  # Limit to top 3
+                    if isinstance(item, dict):
+                        source = item.get("source", "Unknown")
+                        content = item.get("content", "")[:300]  # Limit content length
+                        context_parts.append(f"- From {source}: {content}")
             
             libraries_used = guidance_result.get("libraries_searched", [])
-            if libraries_used:
+            if libraries_used and isinstance(libraries_used, list):
                 context_parts.append(f"\nPython Sources: {', '.join(libraries_used[:3])}")
             
             return "\n".join(context_parts)
@@ -93,10 +96,13 @@ def get_rag_context(python_code, analysis_findings, target_python_version, selec
             
     except Exception as e:
         print(f"Warning: Error getting RAG context: {e}")
+        print(f"Debug info: guidance_result type: {type(guidance_result) if 'guidance_result' in locals() else 'Not defined'}")
+        if 'guidance_result' in locals():
+            print(f"Debug info: guidance_result keys: {list(guidance_result.keys()) if isinstance(guidance_result, dict) else 'Not a dict'}")
         return "Python RAG context unavailable due to error."
 
 def analyze_python_code(python_file_path, target_python_version):
-    """Analyze Python code for modernization opportunities."""
+    """Analyze Python code for modernization opportunities using LLM + regex validation."""
     print(f"Analyzing {python_file_path} for Python {target_python_version} modernization...")
     
     try:
@@ -113,57 +119,150 @@ def analyze_python_code(python_file_path, target_python_version):
         print(f"Error reading Python file: {e}")
         return f"Error reading Python file: {e}"
 
-    # Simple analysis for Python modernization
-    analysis_findings = []
+    # Phase 1: LLM-based analysis (primary detection)
+    llm_analysis = get_llm_analysis(python_code, target_python_version)
+    
+    # Phase 2: Regex validation (double-check and catch missed items)
+    regex_validation = validate_with_regex(python_code, target_python_version)
+    
+    # Phase 3: Combine and prioritize findings
+    combined_findings = combine_analysis_findings(llm_analysis, regex_validation)
+    
+    return combined_findings
+
+def get_llm_analysis(python_code, target_python_version):
+    """Get LLM-based analysis of Python code modernization opportunities."""
+    try:
+        # Create analysis prompt for LLM
+        analysis_prompt = f"""
+        Analyze this Python code for Python {target_python_version} modernization opportunities.
+        
+        Code:
+        {python_code[:2000]}  # Limit to first 2000 chars for analysis
+        
+        Please identify:
+        1. Python 2 vs 3 compatibility issues
+        2. Opportunities for modern Python features (f-strings, walrus operators, type hints)
+        3. Code style improvements
+        4. Performance optimizations
+        
+        Return a concise list of modernization opportunities.
+        """
+        
+        # Call LLM for analysis
+        response = call_llm_for_analysis(analysis_prompt)
+        return response
+        
+    except Exception as e:
+        print(f"Warning: LLM analysis failed: {e}")
+        return "LLM analysis unavailable"
+
+def validate_with_regex(python_code, target_python_version):
+    """Validate LLM findings and catch missed opportunities using regex."""
+    validation_findings = []
     
     # Check for common Python modernization opportunities
     if target_python_version >= "3.6":
         # Check for f-strings (Python 3.6+)
         if re.search(r'%[sd]', python_code) and not re.search(r'f["\']', python_code):
-            analysis_findings.append("- Consider using f-strings instead of % formatting")
+            validation_findings.append("- Consider using f-strings instead of % formatting")
         
-        # Check for type hints (Python 3.5+)
+        # Check for type hints (Python 5+)
         if not re.search(r':\s*[A-Za-z]+\s*[=,)]', python_code):
-            analysis_findings.append("- Consider adding type hints for better code clarity")
+            validation_findings.append("- Consider adding type hints for better code clarity")
     
     if target_python_version >= "3.8":
         # Check for walrus operator opportunities (Python 3.8+)
         if re.search(r'if\s+.*\s*=\s*.*:', python_code):
-            analysis_findings.append("- Consider using walrus operator (:=) for assignment expressions")
+            validation_findings.append("- Consider using walrus operator (:=) for assignment expressions")
     
     if target_python_version >= "3.9":
         # Check for dict union operators (Python 3.9+)
         if re.search(r'\{.*\}\s*\.update\(', python_code):
-            analysis_findings.append("- Consider using dict union operators (|) instead of .update()")
+            validation_findings.append("- Consider using dict union operators (|) instead of .update()")
     
     # Check for print statements (Python 2 vs 3)
     if re.search(r'print\s+[^(]', python_code):
-        analysis_findings.append("- Ensure print statements use parentheses for Python 3 compatibility")
+        validation_findings.append("- Ensure print statements use parentheses for Python 3 compatibility")
     
     # Check for exception handling
     if re.search(r'except\s+[A-Za-z]+,', python_code):
-        analysis_findings.append("- Use 'except Exception as e:' syntax for Python 3")
-    
-    # Check for % string formatting (Python 2 style)
-    if re.search(r'%[sd]', python_code) and not re.search(r'f["\']', python_code):
-        analysis_findings.append("- Consider using f-strings instead of % formatting")
+        validation_findings.append("- Use 'except Exception as e:' syntax for Python 3")
     
     # Check for len() comparisons that could use walrus operator
     if re.search(r'if\s+len\([^)]+\)\s*[!=]=', python_code):
-        analysis_findings.append("- Consider using walrus operator for length checks")
+        validation_findings.append("- Consider using walrus operator for length checks")
     
     # Check for string concatenation that could use f-strings
     if re.search(r'["\'][^"\']*["\']\s*\+\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\+\s*["\']', python_code):
-        analysis_findings.append("- Consider using f-strings instead of string concatenation")
+        validation_findings.append("- Consider using f-strings instead of string concatenation")
+    
+    return validation_findings
+
+def combine_analysis_findings(llm_analysis, regex_validation):
+    """Combine LLM and regex findings, removing duplicates and prioritizing."""
+    combined = []
+    
+    # Add LLM findings first (primary source)
+    if llm_analysis and llm_analysis != "LLM analysis unavailable":
+        combined.append(f"LLM Analysis: {llm_analysis}")
+    
+    # Add regex validation findings (secondary source)
+    if regex_validation:
+        combined.append("\nRegex Validation:")
+        combined.extend(regex_validation)
     
     # Always provide modernization guidance for Python 2 style code
-    if re.search(r'print\s+[^(]', python_code) or re.search(r'%[sd]', python_code):
-        analysis_findings.append("- This file contains Python 2 style code that should be modernized for Python 3 compatibility")
+    if regex_validation and any("print statements" in item or "% formatting" in item for item in regex_validation):
+        combined.append("- This file contains Python 2 style code that should be modernized for Python 3 compatibility")
     
-    if analysis_findings:
-        return "Python modernization opportunities found:\n" + "\n".join(analysis_findings)
+    if combined:
+        return "\n".join(combined)
     else:
         return "Code appears to be Python 3 compatible, but can still benefit from modern Python features like f-strings, type hints, and walrus operators."
+
+def call_llm_for_analysis(analysis_prompt):
+    """Call LLM API for code analysis."""
+    try:
+        # Check if LLM API is available
+        if not LLM_API_TOKEN:
+            return "LLM API not configured - using regex-only analysis"
+        
+        # Prepare payload for analysis
+        payload = {
+            "prompt": analysis_prompt,
+            "model": LLM_MODEL,
+            "max_new_tokens": 1024,  # Shorter for analysis
+            "temperature": 0.1,
+            "max_suggestions": 1,
+            "top_p": 0.85,
+            "top_k": 0,
+            "stop_seq": "",
+            "client": "python-uplift-tool",
+            "stream": False,
+            "stream_batch_tokens": 10
+        }
+        
+        # Make API call
+        response = requests.post(
+            LLM_API_ENDPOINT,
+            headers={"Authorization": f"Bearer {LLM_API_TOKEN}"},
+            json=payload,
+            timeout=(30, 60)
+        )
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            content = response_data.get("content", "")
+            if content:
+                return content[:500]  # Limit response length
+            else:
+                return "LLM analysis completed but no content returned"
+        else:
+            return f"LLM API error: {response.status_code}"
+            
+    except Exception as e:
+        return f"LLM analysis failed: {str(e)}"
 
 def run_command(command, working_dir="."):
     """Executes a shell command and returns stdout, stderr, and return code."""
@@ -631,11 +730,12 @@ def modernize_adaptation_pod_scripts(repo_path, target_python_version="3.9", sel
             with open(file_path, 'r', encoding='utf-8') as f:
                 original_code = f.read()
             
-            # Analyze Python code
+            # Analyze Python code using hybrid LLM + regex approach
             analysis_findings = analyze_python_code(file_path, target_python_version)
-            print(f"Analysis: {analysis_findings}")
+            print(f"Hybrid Analysis Results:")
+            print(f"LLM + Regex Analysis: {analysis_findings}")
             
-            # Get LLM suggestion
+            # Get LLM suggestion for modernization
             updated_code, change_summary = get_llm_suggestion(
                 original_code, 
                 analysis_findings, 
