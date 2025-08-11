@@ -245,7 +245,7 @@ def call_llm_for_analysis(analysis_prompt):
         
         # Make API call
         response = requests.post(
-            LLM_API_ENDPOINT,
+            LLM_API_URL,
             headers={"Authorization": f"Bearer {LLM_API_TOKEN}"},
             json=payload,
             timeout=(30, 60)
@@ -253,11 +253,41 @@ def call_llm_for_analysis(analysis_prompt):
         
         if response.status_code == 200:
             response_data = response.json()
-            content = response_data.get("content", "")
+            print(f"🔍 LLM Analysis API Response: {response_data}")
+            
+            # Try different response formats
+            content = None
+            
+            # Format 1: Direct content field
+            if "content" in response_data:
+                content = response_data["content"]
+                print(f"✅ Found content in 'content' field: {content[:100]}...")
+            
+            # Format 2: OpenAI-style response
+            elif "choices" in response_data and response_data["choices"]:
+                choice = response_data["choices"][0]
+                if "message" in choice and "content" in choice["message"]:
+                    content = choice["message"]["content"]
+                    print(f"✅ Found content in OpenAI format: {content[:100]}...")
+                elif "text" in choice:
+                    content = choice["text"]
+                    print(f"✅ Found content in 'text' field: {content[:100]}...")
+            
+            # Format 3: Generic response with text
+            elif "text" in response_data:
+                content = response_data["text"]
+                print(f"✅ Found content in 'text' field: {content[:100]}...")
+            
+            # Format 4: Response field
+            elif "response" in response_data:
+                content = response_data["response"]
+                print(f"✅ Found content in 'response' field: {content[:100]}...")
+            
             if content:
                 return content[:500]  # Limit response length
             else:
-                return "LLM analysis completed but no content returned"
+                print(f"⚠️  No content found in response. Available keys: {list(response_data.keys())}")
+                return f"LLM analysis completed but no content found. Response keys: {list(response_data.keys())}"
         else:
             return f"LLM API error: {response.status_code}"
             
