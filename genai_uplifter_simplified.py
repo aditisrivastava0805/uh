@@ -346,14 +346,8 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     # Standard approach for all files
     print(f"📏 File size: {len(code)/1024:.1f}KB")
     
-    # Check if file is too large and needs progressive modernization
-    file_size_kb = len(code) / 1024
-    if file_size_kb > 8:  # Files larger than 8KB need progressive approach
-        print(f"📏 Large file detected ({file_size_kb:.1f}KB) - using progressive modernization")
-        return modernize_large_file_progressively(code, analysis_findings, target_version, selected_libraries, file_type)
-    
-    # Standard approach for smaller files
-    print(f"📏 Standard file size ({file_size_kb:.1f}KB) - using direct modernization")
+    # Use direct modernization for all files (GPT-4 can handle large files)
+    print(f"📏 File size: {len(code)/1024:.1f}KB - using direct modernization with GPT-4")
     
     # Create prompt (skip RAG context to save tokens)
     prompt = create_python_prompt(code, analysis_findings, target_version, "")
@@ -366,7 +360,7 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     payload = {
         "prompt": prompt,
         "model": LLM_MODEL,
-        "max_new_tokens": 8192,  # API maximum limit
+        "max_new_tokens": 32768,  # GPT-4 can handle much larger responses  # API maximum limit
         "temperature": 0.1,
         "max_suggestions": 1,
         "top_p": 0.85,
@@ -639,253 +633,30 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
         return None, f"Error calling LLM API: {e}"
 
 def create_python_prompt(code, analysis_findings, target_version, context_section):
-    """Create an extremely concise Python modernization prompt optimized for large files."""
+    """Create a simple, effective Python modernization prompt for GPT-4."""
     
-    # For large files, make the prompt even more concise
-    file_size_kb = len(code) / 1024
-    if file_size_kb > 8:
-        # Ultra-concise prompt for large files
-        return f"""Python {target_version} modernization:
+    return f"""Modernize this Python code for Python {target_version} compatibility.
 
-{analysis_findings[:150]}...
+ANALYSIS: {analysis_findings}
 
-Apply changes, keep everything else.
+REQUIREMENTS:
+- Apply ONLY the modernization opportunities identified above
+- Preserve ALL functionality, logic, and code structure exactly
+- Return the COMPLETE modernized code (no placeholders, no truncation)
+- Keep all imports, functions, classes, and business logic intact
 
+CODE TO MODERNIZE:
 ```python
 {code}
-```"""
-    else:
-        # Standard concise prompt for smaller files
-        return f"""Modernize for Python {target_version}:
+```
 
-{analysis_findings}
+Return the complete modernized code with changes applied."""
 
-Rules: Apply changes above, preserve everything else, return complete code.
 
-```python
-{code}
-```"""
 
-def modernize_large_file_progressively(code, analysis_findings, target_version, selected_libraries=None, file_type='python'):
-    """Modernize large files by processing them in smaller, manageable sections."""
-    print(f"🔄 Starting progressive modernization for large file...")
-    
-    # Split the code into logical sections (by functions/classes)
-    sections = split_code_into_sections(code)
-    print(f"📦 Split code into {len(sections)} logical sections")
-    
-    modernized_sections = []
-    change_summary_parts = []
-    
-    for i, section in enumerate(sections):
-        print(f"🔄 Processing section {i+1}/{len(sections)}: {section['name']} (size: {len(section['code'])/1024:.1f}KB)")
-        
-        # Try to modernize this section with LLM
-        section_result = modernize_section_with_llm(section, analysis_findings, target_version)
-        
-        if section_result and len(section_result['code']) > len(section['code']) * 0.8:  # Ensure not truncated
-            modernized_sections.append(section_result['code'])
-            change_summary_parts.append(section_result['summary'])
-            print(f"✅ Section {i+1} modernized successfully with LLM")
-        else:
-            print(f"⚠️  Section {i+1} LLM failed or truncated, using fallback")
-            # Use fallback modernization for this section
-            fallback_result = modernize_section_with_fallback(section, target_version)
-            modernized_sections.append(fallback_result['code'])
-            change_summary_parts.append(fallback_result['summary'])
-            
-        # Validate section integrity
-        if len(modernized_sections[-1]) < len(section['code']) * 0.5:
-            print(f"🚨 CRITICAL: Section {i+1} is severely truncated, using original code")
-            modernized_sections[-1] = section['code']
-            change_summary_parts[-1] = f"Section '{section['name']}': Preserved original (fallback failed)"
-    
-    # Reassemble the modernized sections with proper spacing
-    print(f"🔧 Reassembling {len(modernized_sections)} sections...")
-    
-    # Join sections with proper spacing based on content
-    final_code = ""
-    for i, section_code in enumerate(modernized_sections):
-        if i > 0:
-            # Add proper spacing between sections
-            if section_code.strip().startswith('import ') or section_code.strip().startswith('from '):
-                final_code += '\n'  # Single newline for imports
-            elif section_code.strip().startswith('def ') or section_code.strip().startswith('class '):
-                final_code += '\n\n'  # Double newline for functions/classes
-            else:
-                final_code += '\n'  # Single newline for other content
-        final_code += section_code
-    
-    # Combine change summaries
-    final_summary = f"Large file modernized using progressive approach:\n" + "\n".join(change_summary_parts)
-    
-    print(f"✅ Progressive modernization completed successfully")
-    return final_code, final_summary
 
-def split_code_into_sections(code):
-    """Split code into manageable chunks based on size, preserving structure."""
-    lines = code.split('\n')
-    sections = []
-    
-    # Target chunk size: 4KB (leaving room for LLM response)
-    target_chunk_size = 4000
-    current_chunk = []
-    current_chunk_size = 0
-    chunk_number = 1
-    
-    for line in lines:
-        line_size = len(line) + 1  # +1 for newline
-        
-        # If adding this line would exceed target size, start new chunk
-        if current_chunk_size + line_size > target_chunk_size and current_chunk:
-            # Try to find a better break point (blank line or function boundary)
-            better_break = False
-            
-            # Look for blank lines in the last few lines of current chunk
-            for j in range(len(current_chunk) - 1, max(0, len(current_chunk) - 5), -1):
-                if current_chunk[j].strip() == '':
-                    # Found a blank line - break here
-                    sections.append({
-                        'name': f'Chunk_{chunk_number}',
-                        'code': '\n'.join(current_chunk[:j+1]).rstrip(),
-                        'start_line': 0,
-                        'end_line': 0
-                    })
-                    # Start new chunk with remaining lines
-                    current_chunk = current_chunk[j+1:] + [line]
-                    current_chunk_size = sum(len(l) + 1 for l in current_chunk)
-                    better_break = True
-                    break
-            
-            if not better_break:
-                # No good break point found, just break here
-                sections.append({
-                    'name': f'Chunk_{chunk_number}',
-                    'code': '\n'.join(current_chunk).rstrip(),
-                    'start_line': 0,
-                    'end_line': 0
-                })
-                current_chunk = [line]
-                current_chunk_size = line_size
-            
-            chunk_number += 1
-        else:
-            # Add line to current chunk
-            current_chunk.append(line)
-            current_chunk_size += line_size
-    
-    # Add the last chunk
-    if current_chunk:
-        sections.append({
-            'name': f'Chunk_{chunk_number}',
-            'code': '\n'.join(current_chunk).rstrip(),
-            'start_line': 0,
-            'end_line': 0
-        })
-    
-    # Ensure we have at least one section
-    if not sections:
-        sections.append({
-            'name': 'Complete File',
-            'code': code,
-            'start_line': 0,
-            'end_line': len(lines) - 1
-        })
-    
-    return sections
 
-def modernize_section_with_llm(section, analysis_findings, target_version):
-    """Modernize a single section using the LLM API."""
-    try:
-        # Create a focused prompt for this section
-        section_prompt = f"""Modernize this Python code section for Python {target_version}:
 
-{analysis_findings}
-
-Rules: Apply changes above, preserve everything else, return complete section.
-
-```python
-{section['code']}
-```"""
-        
-        # Prepare payload for section modernization
-        payload = {
-            "prompt": section_prompt,
-            "model": LLM_MODEL,
-            "max_new_tokens": 4096,  # Smaller for sections
-            "temperature": 0.1,
-            "max_suggestions": 1,
-            "top_p": 0.85,
-            "top_k": 0,
-            "stop_seq": "",
-            "client": "python-uplift-tool-section",
-            "stream": False,
-            "stream_batch_tokens": 10
-        }
-        
-        # Headers
-        headers = {
-            "Authorization": f"Bearer {LLM_API_TOKEN}",
-            "Content-Type": "application/json"
-        }
-        
-        # Make API call
-        response = requests.post(
-            LLM_API_URL,
-            json=payload,
-            headers=headers,
-            timeout=(30, 120),
-            verify=False
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            
-            # Extract response content
-            if 'completions' in result and len(result['completions']) > 0:
-                content_text = result['completions'][0].strip()
-                
-                # Extract modernized code
-                updated_code = extract_updated_code(content_text, 'python')
-                change_summary = extract_change_summary(content_text)
-                
-                if updated_code:
-                    return {
-                        'code': updated_code,
-                        'summary': f"Section '{section['name']}': {change_summary}"
-                    }
-        
-        return None
-        
-    except Exception as e:
-        print(f"❌ Error modernizing section with LLM: {e}")
-        return None
-
-def modernize_section_with_fallback(section, target_version):
-    """Apply fallback modernization to a single section."""
-    # Apply basic modernization patterns to the section
-    updated_code = section['code']
-    changes = []
-    
-    # Apply common modernization patterns
-    import re
-    
-    # Pattern: print statements
-    pattern = r'print\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$'
-    if re.search(pattern, updated_code, re.MULTILINE):
-        updated_code = re.sub(pattern, r'print(\1)', updated_code, flags=re.MULTILINE)
-        changes.append("Fixed print statements for Python 3")
-    
-    # Pattern: string formatting
-    pattern2 = r'"([^"]*%[^"]*)"\s*%\s*([a-zA-Z_][a-zA-Z0-9_]*)'
-    if re.search(pattern2, updated_code):
-        updated_code = re.sub(pattern2, r'f"\1".format(\2)', updated_code)
-        changes.append("Converted % formatting to f-string format")
-    
-    return {
-        'code': updated_code,
-        'summary': f"Section '{section['name']}': Fallback modernization applied - {', '.join(changes)}"
-    }
 
 
 
