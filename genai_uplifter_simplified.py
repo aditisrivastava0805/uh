@@ -227,14 +227,76 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
                 return None, "No valid response format found in LLM response"
             
             if llm_response:
-                # Extract change summary and updated code
-                change_summary = extract_change_summary(llm_response)
-                updated_code = extract_updated_code(llm_response, file_type)
+                # Debug: Print the actual LLM response structure
+                print(f"🔍 LLM Response type: {type(llm_response)}")
+                if isinstance(llm_response, list) and len(llm_response) > 0:
+                    print(f"🔍 First completion type: {type(llm_response[0])}")
+                    if isinstance(llm_response[0], dict):
+                        print(f"🔍 First completion keys: {list(llm_response[0].keys())}")
                 
-                if updated_code:
-                    return updated_code, change_summary
+                # Extract the actual text content
+                content_text = ""
+                
+                if isinstance(llm_response, list):
+                    # Handle list of completions
+                    if len(llm_response) > 0:
+                        first_completion = llm_response[0]
+                        if isinstance(first_completion, dict):
+                            # Try different possible field names for the content
+                            for field in ['text', 'content', 'message', 'response', 'completion']:
+                                if field in first_completion:
+                                    content_text = first_completion[field]
+                                    print(f"✅ Found content in field: '{field}'")
+                                    break
+                            else:
+                                # If no standard field found, try to get the first string value
+                                for key, value in first_completion.items():
+                                    if isinstance(value, str) and len(value) > 100:  # Likely the main content
+                                        content_text = value
+                                        print(f"✅ Using field '{key}' as content (length: {len(value)})")
+                                        break
+                        else:
+                            content_text = str(first_completion)
+                elif isinstance(llm_response, dict):
+                    # Handle single completion object
+                    for field in ['text', 'content', 'message', 'response', 'completion']:
+                        if field in llm_response:
+                            content_text = llm_response[field]
+                            print(f"✅ Found content in field: '{field}'")
+                            break
+                    else:
+                        content_text = str(llm_response)
+                elif isinstance(llm_response, str):
+                    content_text = llm_response
                 else:
-                    return None, "Failed to extract updated code from LLM response"
+                    content_text = str(llm_response)
+                
+                print(f"🔍 Content text length: {len(content_text)}")
+                print(f"🔍 Content preview: {content_text[:200]}...")
+                
+                if content_text and len(content_text) > 50:  # Ensure we have substantial content
+                    # Extract change summary and updated code
+                    change_summary = extract_change_summary(content_text)
+                    updated_code = extract_updated_code(content_text, file_type)
+                    
+                    if updated_code:
+                        print(f"✅ Successfully extracted updated code (length: {len(updated_code)})")
+                        return updated_code, change_summary
+                    else:
+                        print("❌ Failed to extract updated code from content")
+                        print(f"🔍 Content sample for debugging: {content_text[:500]}")
+                        # Return original code with a note if extraction fails
+                        fallback_code = f"""# LLM modernization applied but code extraction failed
+# Original analysis: {analysis_findings}
+# Raw LLM response available in change summary
+
+{code}
+
+# End of original code
+"""
+                        return fallback_code, f"Modernization attempted but code extraction failed. Raw response: {content_text[:500]}..."
+                else:
+                    return None, f"No substantial content received from LLM (length: {len(content_text)})"
             else:
                 return None, "No response content from LLM"
                 
@@ -258,19 +320,40 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
                 # Look for patterns that can use walrus operator
                 import re
                 
-                # Pattern: if some_condition: result = some_function()
+                # Pattern 1: if some_condition: result = some_function()
                 # Convert to: if result := some_function(): pass
                 pattern1 = r'if\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*==\s*([^:]+):\s*\n\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\2'
                 if re.search(pattern1, updated_code):
                     updated_code = re.sub(pattern1, r'if \3 := \2:', updated_code)
                     change_summary += "\n- Applied walrus operator for assignment expressions"
                 
-                # Pattern: result = some_function(); if result:
+                # Pattern 2: result = some_function(); if result:
                 # Convert to: if result := some_function():
                 pattern2 = r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);\s*if\s+\1:'
                 if re.search(pattern2, updated_code):
                     updated_code = re.sub(pattern2, r'if \1 := \2:', updated_code)
                     change_summary += "\n- Applied walrus operator for conditional assignment"
+                
+                # Pattern 3: if len(something) != 0: (common in the SDP file)
+                # Convert to: if len_something := len(something) and len_something != 0:
+                pattern3 = r'if\s+len\(([^)]+)\)\s*!=\s*0:'
+                if re.search(pattern3, updated_code):
+                    updated_code = re.sub(pattern3, r'if len_\1 := len(\1) and len_\1 != 0:', updated_code)
+                    change_summary += "\n- Applied walrus operator for length checks"
+                
+                # Pattern 4: if len(something) == 0: (common in the SDP file)
+                # Convert to: if len_something := len(something) and len_something == 0:
+                pattern4 = r'if\s+len\(([^)]+)\)\s*==\s*0:'
+                if re.search(pattern4, updated_code):
+                    updated_code = re.sub(pattern4, r'if len_\1 := len(\1) and len_\1 == 0:', updated_code)
+                    change_summary += "\n- Applied walrus operator for empty length checks"
+                
+                # Pattern 5: if len(something) == specific_length: (like the date parsing)
+                # Convert to: if len_something := len(something) and len_something == specific_length:
+                pattern5 = r'if\s+len\(([^)]+)\)\s*==\s*(\d+):'
+                if re.search(pattern5, updated_code):
+                    updated_code = re.sub(pattern5, r'if len_\1 := len(\1) and len_\1 == \2:', updated_code)
+                    change_summary += "\n- Applied walrus operator for specific length checks"
             
             if "f-string" in analysis_findings.lower():
                 # Convert % formatting to f-strings where safe
@@ -399,23 +482,40 @@ def extract_change_summary(response):
         return f"Error extracting change summary: {e}"
 
 def extract_updated_code(response, file_type):
-    """Extract updated code from LLM response."""
-    try:
-        start_marker = f"```{file_type}"
-        end_marker = "```"
-        
-        start_idx = response.find(start_marker)
-        if start_idx != -1:
-            start_idx += len(start_marker)
-            end_idx = response.find(end_marker, start_idx)
-            
-            if end_idx != -1:
-                return response[start_idx:end_idx].strip()
-        
-        return None
-    except Exception as e:
-        print(f"Error extracting updated code: {e}")
-        return None
+    """Extract updated code from LLM response using multiple patterns."""
+    import re
+    
+    # Try multiple patterns to extract code
+    patterns = [
+        # Pattern 1: Code between ```python and ```
+        r'```python\s*(.*?)\s*```',
+        # Pattern 2: Code between ``` and ```
+        r'```\s*(.*?)\s*```',
+        # Pattern 3: Code after "Updated code:" or similar
+        r'(?:Updated code|Modernized code|Here(?:\'s| is) the (?:updated|modernized) code):\s*\n(.*)',
+        # Pattern 4: Code after "```" at start of line
+        r'^```.*?\n(.*?)\n```',
+        # Pattern 5: Everything after first #!/usr/bin/python or similar
+        r'(#!/.*?python.*?(?:\n.*?)*)',
+    ]
+    
+    for i, pattern in enumerate(patterns, 1):
+        match = re.search(pattern, response, re.DOTALL | re.MULTILINE | re.IGNORECASE)
+        if match:
+            extracted = match.group(1).strip()
+            if len(extracted) > 100:  # Ensure it's substantial code
+                print(f"✅ Code extracted using pattern {i}")
+                return extracted
+            else:
+                print(f"⚠️  Pattern {i} matched but content too short ({len(extracted)} chars)")
+    
+    # If no patterns work, check if the entire content looks like Python code
+    if response.strip().startswith(('#!', 'import ', 'from ', 'def ', 'class ')):
+        print("✅ Using entire content as it appears to be Python code")
+        return response.strip()
+    
+    print("❌ No code extraction pattern matched")
+    return None
 
 def find_python_files(directory):
     """Find all Python files in a directory recursively."""
