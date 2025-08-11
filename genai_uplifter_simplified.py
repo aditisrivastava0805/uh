@@ -346,6 +346,15 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     # Standard approach for all files
     print(f"📏 File size: {len(code)/1024:.1f}KB")
     
+    # Check if file is too large and needs progressive modernization
+    file_size_kb = len(code) / 1024
+    if file_size_kb > 8:  # Files larger than 8KB need progressive approach
+        print(f"📏 Large file detected ({file_size_kb:.1f}KB) - using progressive modernization")
+        return modernize_large_file_progressively(code, analysis_findings, target_version, selected_libraries, file_type)
+    
+    # Standard approach for smaller files
+    print(f"📏 Standard file size ({file_size_kb:.1f}KB) - using direct modernization")
+    
     # Create prompt (skip RAG context to save tokens)
     prompt = create_python_prompt(code, analysis_findings, target_version, "")
     
@@ -641,6 +650,192 @@ Rules: Apply changes above, preserve everything else, return complete code.
 {code}
 ```"""
 
+def modernize_large_file_progressively(code, analysis_findings, target_version, selected_libraries=None, file_type='python'):
+    """Modernize large files by processing them in smaller, manageable sections."""
+    print(f"🔄 Starting progressive modernization for large file...")
+    
+    # Split the code into logical sections (by functions/classes)
+    sections = split_code_into_sections(code)
+    print(f"📦 Split code into {len(sections)} logical sections")
+    
+    modernized_sections = []
+    change_summary_parts = []
+    
+    for i, section in enumerate(sections):
+        print(f"🔄 Processing section {i+1}/{len(sections)}: {section['name']} (size: {len(section['code'])/1024:.1f}KB)")
+        
+        # Try to modernize this section with LLM
+        section_result = modernize_section_with_llm(section, analysis_findings, target_version)
+        
+        if section_result and len(section_result['code']) > len(section['code']) * 0.8:  # Ensure not truncated
+            modernized_sections.append(section_result['code'])
+            change_summary_parts.append(section_result['summary'])
+            print(f"✅ Section {i+1} modernized successfully with LLM")
+        else:
+            print(f"⚠️  Section {i+1} LLM failed or truncated, using fallback")
+            # Use fallback modernization for this section
+            fallback_result = modernize_section_with_fallback(section, target_version)
+            modernized_sections.append(fallback_result['code'])
+            change_summary_parts.append(fallback_result['summary'])
+    
+    # Reassemble the modernized sections
+    print(f"🔧 Reassembling {len(modernized_sections)} sections...")
+    final_code = '\n\n'.join(modernized_sections)
+    
+    # Combine change summaries
+    final_summary = f"Large file modernized using progressive approach:\n" + "\n".join(change_summary_parts)
+    
+    print(f"✅ Progressive modernization completed successfully")
+    return final_code, final_summary
+
+def split_code_into_sections(code):
+    """Split code into logical sections by functions and classes."""
+    lines = code.split('\n')
+    sections = []
+    current_section = []
+    current_section_name = "Header"
+    current_section_start = 0
+    
+    for i, line in enumerate(lines):
+        current_section.append(line)
+        
+        # Check for section boundaries
+        if line.strip().startswith('def '):
+            if current_section:
+                sections.append({
+                    'name': current_section_name,
+                    'code': '\n'.join(current_section),
+                    'start_line': current_section_start,
+                    'end_line': i - 1
+                })
+            current_section = [line]
+            current_section_name = line.strip().split('(')[0].replace('def ', '')
+            current_section_start = i
+        elif line.strip().startswith('class '):
+            if current_section:
+                sections.append({
+                    'name': current_section_name,
+                    'code': '\n'.join(current_section),
+                    'start_line': current_section_start,
+                    'end_line': i - 1
+                })
+            current_section = [line]
+            current_section_name = line.strip().split('(')[0].replace('class ', '')
+            current_section_start = i
+    
+    # Add the last section
+    if current_section:
+        sections.append({
+            'name': current_section_name,
+            'code': '\n'.join(current_section),
+            'start_line': current_section_start,
+            'end_line': len(lines) - 1
+        })
+    
+    # Ensure we have at least one section
+    if not sections:
+        sections.append({
+            'name': 'Complete File',
+            'code': code,
+            'start_line': 0,
+            'end_line': len(lines) - 1
+        })
+    
+    return sections
+
+def modernize_section_with_llm(section, analysis_findings, target_version):
+    """Modernize a single section using the LLM API."""
+    try:
+        # Create a focused prompt for this section
+        section_prompt = f"""Modernize this Python code section for Python {target_version}:
+
+{analysis_findings}
+
+Rules: Apply changes above, preserve everything else, return complete section.
+
+```python
+{section['code']}
+```"""
+        
+        # Prepare payload for section modernization
+        payload = {
+            "prompt": section_prompt,
+            "model": LLM_MODEL,
+            "max_new_tokens": 4096,  # Smaller for sections
+            "temperature": 0.1,
+            "max_suggestions": 1,
+            "top_p": 0.85,
+            "top_k": 0,
+            "stop_seq": "",
+            "client": "python-uplift-tool-section",
+            "stream": False,
+            "stream_batch_tokens": 10
+        }
+        
+        # Headers
+        headers = {
+            "Authorization": f"Bearer {LLM_API_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        # Make API call
+        response = requests.post(
+            LLM_API_URL,
+            json=payload,
+            headers=headers,
+            timeout=(30, 120),
+            verify=False
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            # Extract response content
+            if 'completions' in result and len(result['completions']) > 0:
+                content_text = result['completions'][0].strip()
+                
+                # Extract modernized code
+                updated_code = extract_updated_code(content_text, 'python')
+                change_summary = extract_change_summary(content_text)
+                
+                if updated_code:
+                    return {
+                        'code': updated_code,
+                        'summary': f"Section '{section['name']}': {change_summary}"
+                    }
+        
+        return None
+        
+    except Exception as e:
+        print(f"❌ Error modernizing section with LLM: {e}")
+        return None
+
+def modernize_section_with_fallback(section, target_version):
+    """Apply fallback modernization to a single section."""
+    # Apply basic modernization patterns to the section
+    updated_code = section['code']
+    changes = []
+    
+    # Apply common modernization patterns
+    import re
+    
+    # Pattern: print statements
+    pattern = r'print\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$'
+    if re.search(pattern, updated_code, re.MULTILINE):
+        updated_code = re.sub(pattern, r'print(\1)', updated_code, flags=re.MULTILINE)
+        changes.append("Fixed print statements for Python 3")
+    
+    # Pattern: string formatting
+    pattern2 = r'"([^"]*%[^"]*)"\s*%\s*([a-zA-Z_][a-zA-Z0-9_]*)'
+    if re.search(pattern2, updated_code):
+        updated_code = re.sub(pattern2, r'f"\1".format(\2)', updated_code)
+        changes.append("Converted % formatting to f-string format")
+    
+    return {
+        'code': updated_code,
+        'summary': f"Section '{section['name']}': Fallback modernization applied - {', '.join(changes)}"
+    }
+
 
 
 
@@ -761,8 +956,29 @@ def extract_change_summary(response):
         return f"Error extracting change summary: {e}"
 
 def extract_updated_code(response, file_type):
-    """Extract updated code from LLM response using multiple patterns."""
+    """Extract updated code from LLM response using multiple patterns with truncation detection."""
     import re
+    
+    # Check for truncation indicators
+    truncation_patterns = [
+        r'#\s*\.\.\.\s*\(.*?\)',  # "# ... (other methods remain mostly unchanged)"
+        r'#\s*\.\.\.',  # "# ..."
+        r'#\s*truncated',
+        r'#\s*end\s+of\s+file',
+        r'#\s*remaining\s+code',
+        r'#\s*continue\s+below',
+        r'#\s*see\s+above',
+        r'#\s*omitted\s+for\s+brevity',
+        r'#\s*and\s+so\s+on',
+        r'#\s*etc\.',
+    ]
+    
+    # Check if response contains truncation indicators
+    for pattern in truncation_patterns:
+        if re.search(pattern, response, re.IGNORECASE):
+            print(f"🚨 CRITICAL: Detected truncation indicator: {pattern}")
+            print(f"❌ This suggests the LLM response is incomplete - REJECTING")
+            return None
     
     # Try multiple patterns to extract code
     patterns = [
