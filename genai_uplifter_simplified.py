@@ -639,8 +639,24 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
         return None, f"Error calling LLM API: {e}"
 
 def create_python_prompt(code, analysis_findings, target_version, context_section):
-    """Create an extremely concise Python modernization prompt to save tokens."""
-    return f"""Modernize for Python {target_version}:
+    """Create an extremely concise Python modernization prompt optimized for large files."""
+    
+    # For large files, make the prompt even more concise
+    file_size_kb = len(code) / 1024
+    if file_size_kb > 8:
+        # Ultra-concise prompt for large files
+        return f"""Python {target_version} modernization:
+
+{analysis_findings[:150]}...
+
+Apply changes, keep everything else.
+
+```python
+{code}
+```"""
+    else:
+        # Standard concise prompt for smaller files
+        return f"""Modernize for Python {target_version}:
 
 {analysis_findings}
 
@@ -677,10 +693,28 @@ def modernize_large_file_progressively(code, analysis_findings, target_version, 
             fallback_result = modernize_section_with_fallback(section, target_version)
             modernized_sections.append(fallback_result['code'])
             change_summary_parts.append(fallback_result['summary'])
+            
+        # Validate section integrity
+        if len(modernized_sections[-1]) < len(section['code']) * 0.5:
+            print(f"🚨 CRITICAL: Section {i+1} is severely truncated, using original code")
+            modernized_sections[-1] = section['code']
+            change_summary_parts[-1] = f"Section '{section['name']}': Preserved original (fallback failed)"
     
-    # Reassemble the modernized sections
+    # Reassemble the modernized sections with proper spacing
     print(f"🔧 Reassembling {len(modernized_sections)} sections...")
-    final_code = '\n\n'.join(modernized_sections)
+    
+    # Join sections with proper spacing based on content
+    final_code = ""
+    for i, section_code in enumerate(modernized_sections):
+        if i > 0:
+            # Add proper spacing between sections
+            if section_code.strip().startswith('import ') or section_code.strip().startswith('from '):
+                final_code += '\n'  # Single newline for imports
+            elif section_code.strip().startswith('def ') or section_code.strip().startswith('class '):
+                final_code += '\n\n'  # Double newline for functions/classes
+            else:
+                final_code += '\n'  # Single newline for other content
+        final_code += section_code
     
     # Combine change summaries
     final_summary = f"Large file modernized using progressive approach:\n" + "\n".join(change_summary_parts)
@@ -689,47 +723,64 @@ def modernize_large_file_progressively(code, analysis_findings, target_version, 
     return final_code, final_summary
 
 def split_code_into_sections(code):
-    """Split code into logical sections by functions and classes."""
+    """Split code into manageable chunks based on size, preserving structure."""
     lines = code.split('\n')
     sections = []
-    current_section = []
-    current_section_name = "Header"
-    current_section_start = 0
     
-    for i, line in enumerate(lines):
-        current_section.append(line)
+    # Target chunk size: 4KB (leaving room for LLM response)
+    target_chunk_size = 4000
+    current_chunk = []
+    current_chunk_size = 0
+    chunk_number = 1
+    
+    for line in lines:
+        line_size = len(line) + 1  # +1 for newline
         
-        # Check for section boundaries
-        if line.strip().startswith('def '):
-            if current_section:
+        # If adding this line would exceed target size, start new chunk
+        if current_chunk_size + line_size > target_chunk_size and current_chunk:
+            # Try to find a better break point (blank line or function boundary)
+            better_break = False
+            
+            # Look for blank lines in the last few lines of current chunk
+            for j in range(len(current_chunk) - 1, max(0, len(current_chunk) - 5), -1):
+                if current_chunk[j].strip() == '':
+                    # Found a blank line - break here
+                    sections.append({
+                        'name': f'Chunk_{chunk_number}',
+                        'code': '\n'.join(current_chunk[:j+1]).rstrip(),
+                        'start_line': 0,
+                        'end_line': 0
+                    })
+                    # Start new chunk with remaining lines
+                    current_chunk = current_chunk[j+1:] + [line]
+                    current_chunk_size = sum(len(l) + 1 for l in current_chunk)
+                    better_break = True
+                    break
+            
+            if not better_break:
+                # No good break point found, just break here
                 sections.append({
-                    'name': current_section_name,
-                    'code': '\n'.join(current_section),
-                    'start_line': current_section_start,
-                    'end_line': i - 1
+                    'name': f'Chunk_{chunk_number}',
+                    'code': '\n'.join(current_chunk).rstrip(),
+                    'start_line': 0,
+                    'end_line': 0
                 })
-            current_section = [line]
-            current_section_name = line.strip().split('(')[0].replace('def ', '')
-            current_section_start = i
-        elif line.strip().startswith('class '):
-            if current_section:
-                sections.append({
-                    'name': current_section_name,
-                    'code': '\n'.join(current_section),
-                    'start_line': current_section_start,
-                    'end_line': i - 1
-                })
-            current_section = [line]
-            current_section_name = line.strip().split('(')[0].replace('class ', '')
-            current_section_start = i
+                current_chunk = [line]
+                current_chunk_size = line_size
+            
+            chunk_number += 1
+        else:
+            # Add line to current chunk
+            current_chunk.append(line)
+            current_chunk_size += line_size
     
-    # Add the last section
-    if current_section:
+    # Add the last chunk
+    if current_chunk:
         sections.append({
-            'name': current_section_name,
-            'code': '\n'.join(current_section),
-            'start_line': current_section_start,
-            'end_line': len(lines) - 1
+            'name': f'Chunk_{chunk_number}',
+            'code': '\n'.join(current_chunk).rstrip(),
+            'start_line': 0,
+            'end_line': 0
         })
     
     # Ensure we have at least one section
@@ -1178,7 +1229,9 @@ def modernize_adaptation_pod_scripts(repo_path, target_python_version="3.9", sel
                 if len(updated_code) < len(original_code) * 0.7:  # More than 30% of content lost
                     print(f"⚠️  WARNING: Modernized code is significantly shorter than original")
                     print(f"   Original: {len(original_code)} chars, Modernized: {len(updated_code)} chars")
-                    print(f"   This might indicate truncation - proceeding with caution")
+                    print(f"🔄 Truncation detected - automatically falling back to local modernization engine")
+                    updated_code, change_summary = execute_fallback_modernization(original_code, analysis_findings)
+                    print(f"✅ Fallback modernization completed")
                 
                 if len(updated_lines) < len(original_lines) * 0.8:  # More than 20% of lines lost
                     print(f"❌ SAFETY CHECK FAILED: Too many lines lost in {file_path}")
