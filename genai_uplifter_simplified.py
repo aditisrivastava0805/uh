@@ -22,7 +22,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Load environment variables
 load_dotenv()
 LLM_API_URL = "https://gateway.eli.gaia.gic.ericsson.se/api/v1/llm/generate"
-LLM_MODEL = os.getenv("LLM_MODEL", "Mistral-12b")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4")
 LLM_API_TOKEN = os.getenv("LLM_API_TOKEN", "")
 
 def initialize_llm_api():
@@ -360,7 +360,7 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     payload = {
         "prompt": prompt,
         "model": LLM_MODEL,
-        "max_new_tokens": 32768,  # GPT-4 can handle much larger responses  # API maximum limit
+        "max_new_tokens": 8192,  # Safe limit that works with most models
         "temperature": 0.1,
         "max_suggestions": 1,
         "top_p": 0.85,
