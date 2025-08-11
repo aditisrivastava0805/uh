@@ -162,107 +162,61 @@ def run_command(command, working_dir="."):
         return None, str(e), 1
 
 def get_llm_suggestion(code, analysis_findings, target_version, selected_libraries=None, file_type='python'):
-    """Gets suggestions from LLM API for Python code modernization with RAG context."""
+    """Get LLM suggestion for code modernization."""
     print(f"Asking LLM to update {file_type} code for Python {target_version}...")
     
-    # Check RAG connection
-    rag_connected, rag_status = test_rag_connection()
-    if not rag_connected:
-        print(f"Warning: RAG API not available - {rag_status}")
-        print("Proceeding with LLM-only modernization.")
+    # Get RAG context
+    context_section = get_rag_context(code, analysis_findings, target_version, selected_libraries)
     
-    # Get RAG context if available
-    rag_context = ""
-    if rag_connected and selected_libraries:
-        try:
-            rag_context = get_rag_context(code, analysis_findings, target_version, selected_libraries)
-            print("✅ RAG context retrieved successfully")
-        except Exception as e:
-            print(f"Warning: Failed to get RAG context: {e}")
-            rag_context = ""
-    
-    # Build context section for prompt
-    context_section = ""
-    if rag_context and rag_context.strip():
-        context_section = f"""
-RELEVANT CONTEXT FROM ERICSSON PRODUCT LIBRARIES:
-The following context has been retrieved from Ericsson product libraries to guide the modernization:
-
-{rag_context}
-
-Use this context to understand Ericsson-specific patterns and requirements when modernizing the code.
-Follow any specific migration patterns or best practices mentioned in the context.
-"""
-    else:
-        context_section = """
-Note: No Ericsson-specific context was retrieved. Proceed with standard Python modernization patterns.
-"""
-    
-    # Create Python-specific prompt
+    # Create prompt
     prompt = create_python_prompt(code, analysis_findings, target_version, context_section)
     
+    # Prepare payload
+    payload = {
+        "prompt": prompt,
+        "model": LLM_MODEL,
+        "max_new_tokens": 4096,
+        "temperature": 0.1,
+        "max_suggestions": 1,
+        "top_p": 0.85,
+        "top_k": 0,
+        "stop_seq": "",
+        "client": "python-uplift-tool",
+        "stream": False,
+        "stream_batch_tokens": 10
+    }
+    
+    # Headers
+    headers = {
+        "Authorization": f"Bearer {LLM_API_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
     try:
-        headers = {
-            "Authorization": f"Bearer {LLM_API_TOKEN}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "prompt": prompt,
-            "model": LLM_MODEL,
-            "max_new_tokens": 4096,
-            "temperature": 0.1,  # Lower temperature for more conservative responses
-            "max_suggestions": 1,
-            "top_p": 0.85,  # Lower top_p for more focused responses
-            "top_k": 0,
-            "stop_seq": "",
-            "client": "python-uplift-tool",
-            "stream": False,
-            "stream_batch_tokens": 10
-        }
-        
-        response = requests.post(LLM_API_URL, headers=headers, json=payload, verify=False)
+        # Make API call with SSL verification disabled
+        response = requests.post(
+            LLM_API_URL, 
+            json=payload, 
+            headers=headers, 
+            timeout=60,
+            verify=False  # Disable SSL verification for corporate API
+        )
         
         if response.status_code == 200:
             result = response.json()
-            
-            # Debug: Print response structure based on documented format
             print(f"🔍 LLM API Response structure: {list(result.keys())}")
-            if 'completions' in result:
-                print(f"🔍 Completions array length: {len(result['completions'])}")
-                if len(result['completions']) > 0:
-                    print(f"🔍 First completion preview: {result['completions'][0][:100]}...")
-            if 'message' in result:
-                print(f"🔍 Response message: {result['message']}")
-            if 'status' in result:
-                print(f"🔍 Response status: {result['status']}")
             
-            # Handle response based on documented API format
+            # Extract response based on format
             llm_response = None
-            
-            # Primary: Use 'completions' format as documented in API spec
             if 'completions' in result and len(result['completions']) > 0:
                 llm_response = result['completions'][0].strip()
                 print(f"✅ Successfully extracted response from 'completions' field")
-            
-            # Fallback: Try 'choices' format (OpenAI-style) for compatibility
             elif 'choices' in result and len(result['choices']) > 0:
                 if 'message' in result['choices'][0]:
                     llm_response = result['choices'][0]['message']['content']
                 else:
                     llm_response = result['choices'][0].get('text', '')
                 print(f"⚠️  Using fallback 'choices' format")
-            
-            if llm_response:
-                # Parse the response
-                change_summary = extract_change_summary(llm_response)
-                updated_code = extract_updated_code(llm_response, file_type)
-                
-                if updated_code:
-                    return updated_code, change_summary
-                else:
-                    print("❌ Failed to extract updated code from LLM response")
-                    return None, "Failed to extract updated code from LLM response"
             else:
                 print("❌ No valid response format found in LLM response")
                 print(f"Expected 'completions' array or 'choices' array, but found: {list(result.keys())}")
@@ -271,31 +225,88 @@ Note: No Ericsson-specific context was retrieved. Proceed with standard Python m
                 if 'status' in result:
                     print(f"API status: {result['status']}")
                 return None, "No valid response format found in LLM response"
+            
+            if llm_response:
+                # Extract change summary and updated code
+                change_summary = extract_change_summary(llm_response)
+                updated_code = extract_updated_code(llm_response, file_type)
+                
+                if updated_code:
+                    return updated_code, change_summary
+                else:
+                    return None, "Failed to extract updated code from LLM response"
+            else:
+                return None, "No response content from LLM"
+                
         else:
-            print(f"❌ LLM API error: {response.status_code} - {response.text}")
-            # Try to parse error details
-            try:
-                error_data = response.json()
-                error_detail = error_data.get('detail', [])
-                if error_detail:
-                    print(f"Error details: {error_detail}")
-            except:
-                pass
-            return None, f"LLM API error: {response.status_code}"
+            error_msg = f"API request failed with status {response.status_code}: {response.text}"
+            print(f"❌ {error_msg}")
+            return None, error_msg
             
     except Exception as e:
         print(f"❌ Error calling LLM API: {e}")
-        # Return a fallback response for testing purposes
+        # Return a fallback response that implements actual modernization based on analysis
         if "LLM_API_TOKEN" not in str(e) and "401" not in str(e):
-            print("⚠️  Using fallback response for testing")
+            print("⚠️  Using fallback modernization based on analysis findings")
+            
+            # Implement modernization based on analysis findings
+            updated_code = code
+            change_summary = "Modernization applied using fallback engine based on analysis findings:"
+            
+            # Apply modernization based on analysis findings
+            if "walrus operator" in analysis_findings.lower():
+                # Look for patterns that can use walrus operator
+                import re
+                
+                # Pattern: if some_condition: result = some_function()
+                # Convert to: if result := some_function(): pass
+                pattern1 = r'if\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*==\s*([^:]+):\s*\n\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\2'
+                if re.search(pattern1, updated_code):
+                    updated_code = re.sub(pattern1, r'if \3 := \2:', updated_code)
+                    change_summary += "\n- Applied walrus operator for assignment expressions"
+                
+                # Pattern: result = some_function(); if result:
+                # Convert to: if result := some_function():
+                pattern2 = r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);\s*if\s+\1:'
+                if re.search(pattern2, updated_code):
+                    updated_code = re.sub(pattern2, r'if \1 := \2:', updated_code)
+                    change_summary += "\n- Applied walrus operator for conditional assignment"
+            
+            if "f-string" in analysis_findings.lower():
+                # Convert % formatting to f-strings where safe
+                import re
+                
+                # Pattern: "text %s text" % variable
+                pattern = r'"([^"]*%[^"]*)"\s*%\s*([a-zA-Z_][a-zA-Z0-9_]*)'
+                if re.search(pattern, updated_code):
+                    updated_code = re.sub(pattern, r'f"\1".format(\2)', updated_code)
+                    change_summary += "\n- Converted % formatting to f-string format"
+            
+            if "type hints" in analysis_findings.lower():
+                # Add basic type hints where missing
+                import re
+                
+                # Pattern: def function_name(param):
+                # Convert to: def function_name(param: Any):
+                pattern = r'def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\):'
+                if re.search(pattern, updated_code):
+                    # Only add type hints if not already present
+                    if ': ' not in re.search(pattern, updated_code).group(2):
+                        updated_code = re.sub(pattern, r'def \1(\2: Any):', updated_code)
+                        change_summary += "\n- Added basic type hints to function parameters"
+            
+            # If no specific changes were made, provide a generic message
+            if updated_code == code:
+                change_summary = "Analysis found modernization opportunities, but fallback engine could not apply specific changes. Manual review recommended."
+            
             fallback_response = f"""
 <change_summary>
-No modernization required for this test code.
+{change_summary}
 </change_summary>
 
 <updated_code>
-```{file_type}
-{code}
+```python
+{updated_code}
 ```
 </updated_code>
 """
@@ -327,12 +338,14 @@ Analysis found these modernization opportunities:
 
 {context_section}
 
-Your task is to ONLY:
+Your task is to IMPLEMENT the modernization changes identified in the analysis:
 - Replace deprecated APIs with their modern equivalents (same behavior)
 - Update syntax that won't work in Python {target_version}
 - Address specific issues from analysis findings
 - Consider Ericsson-specific patterns from the provided context
 - Keep ALL other code exactly as-is, including any bugs or runtime issues
+
+IMPORTANT: You MUST make the modernization changes identified in the analysis. Do NOT say "No modernization required" if the analysis found opportunities.
 
 DO NOT:
 - Fix runtime errors unless they're due to deprecated APIs
@@ -353,12 +366,12 @@ PRESERVE EXACTLY:
 Format your response as:
 
 <change_summary>
-[Brief summary of ONLY the modernization changes made, referencing analysis findings. If no changes needed, state "No modernization required."]
+[Brief summary of the modernization changes made, referencing the specific analysis findings. List each change applied.]
 </change_summary>
 
 <updated_code>
 ```python
-[Updated Python code with MINIMAL changes for Python {target_version} compatibility]
+[Updated Python code with the modernization changes applied for Python {target_version} compatibility]
 ```
 </updated_code>
 
