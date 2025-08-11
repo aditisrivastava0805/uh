@@ -96,9 +96,7 @@ def get_rag_context(python_code, analysis_findings, target_python_version, selec
             
     except Exception as e:
         print(f"Warning: Error getting RAG context: {e}")
-        print(f"Debug info: guidance_result type: {type(guidance_result) if 'guidance_result' in locals() else 'Not defined'}")
-        if 'guidance_result' in locals():
-            print(f"Debug info: guidance_result keys: {list(guidance_result.keys()) if isinstance(guidance_result, dict) else 'Not a dict'}")
+        # RAG context error occurred
         return "Python RAG context unavailable due to error."
 
 def analyze_python_code(python_file_path, target_python_version):
@@ -254,7 +252,7 @@ def call_llm_for_analysis(analysis_prompt):
         
         if response.status_code == 200:
             response_data = response.json()
-            print(f"🔍 LLM Analysis API Response: {response_data}")
+            print(f"🔍 LLM Analysis API Response received")
             
             # Use the same response parsing logic as the modernization function
             content = None
@@ -295,8 +293,8 @@ def call_llm_for_analysis(analysis_prompt):
             if content:
                 return content[:500]  # Limit response length
             else:
-                print(f"⚠️  No content found in response. Available keys: {list(response_data.keys())}")
-                return f"LLM analysis completed but no content found. Response keys: {list(response_data.keys())}"
+                print(f"⚠️  No content found in response")
+                return f"LLM analysis completed but no content found"
         else:
             return f"LLM API error: {response.status_code}"
             
@@ -357,12 +355,8 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
     
     try:
         # Make API call with SSL verification disabled and optimized timeouts
-        print(f"🚀 Making LLM API call with timeout settings: {timeout_settings}")
-        
-        # Show progress for large files
         if file_size_kb > 10:
-            print(f"⏳ Large file detected - this may take several minutes...")
-            print(f"📊 Processing {file_size_kb:.1f}KB of code...")
+            print(f"⏳ Processing large file ({file_size_kb:.1f}KB) - this may take several minutes...")
         
         response = requests.post(
             LLM_API_URL, 
@@ -397,12 +391,7 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
                 return None, "No valid response format found in LLM response"
             
             if llm_response:
-                # Debug: Print the actual LLM response structure
-                print(f"🔍 LLM Response type: {type(llm_response)}")
-                if isinstance(llm_response, list) and len(llm_response) > 0:
-                    print(f"🔍 First completion type: {type(llm_response[0])}")
-                    if isinstance(llm_response[0], dict):
-                        print(f"🔍 First completion keys: {list(llm_response[0].keys())}")
+                # Extract the actual text content
                 
                 # Extract the actual text content
                 content_text = ""
@@ -441,8 +430,7 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
                 else:
                     content_text = str(llm_response)
                 
-                print(f"🔍 Content text length: {len(content_text)}")
-                print(f"🔍 Content preview: {content_text[:200]}...")
+                # Content extracted successfully
                 
                 if content_text and len(content_text) > 50:  # Ensure we have substantial content
                     # Extract change summary and updated code
@@ -454,7 +442,7 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
                         return updated_code, change_summary
                     else:
                         print("❌ Failed to extract updated code from content")
-                        print(f"🔍 Content sample for debugging: {content_text[:500]}")
+                        print(f"Content extraction failed")
                         # Return original code with a note if extraction fails
                         fallback_code = f"""# LLM modernization applied but code extraction failed
 # Original analysis: {analysis_findings}
@@ -758,8 +746,6 @@ def validate_code_safety(original_code, modernized_code):
         (r"'''[\s\S]*?'''", 'docstrings'),
     ]
     
-    print(f"🔒 Running code safety validation...")
-    
     for pattern, description in critical_patterns:
         original_count = len(re.findall(pattern, original_code, re.MULTILINE))
         modernized_count = len(re.findall(pattern, modernized_code, re.MULTILINE))
@@ -781,7 +767,6 @@ def validate_code_safety(original_code, modernized_code):
         print(f"❌ CRITICAL: Code length reduced by more than 10% ({original_length} -> {modernized_length})")
         return False
     
-    print(f"✅ Code safety validation passed")
     return True
 
 def find_python_files(directory):
@@ -827,8 +812,7 @@ def modernize_adaptation_pod_scripts(repo_path, target_python_version="3.9", sel
             
             # Analyze Python code using hybrid LLM + regex approach
             analysis_findings = analyze_python_code(file_path, target_python_version)
-            print(f"Hybrid Analysis Results:")
-            print(f"LLM + Regex Analysis: {analysis_findings}")
+            print(f"Analysis: {analysis_findings}")
             
             # Get LLM suggestion for modernization
             updated_code, change_summary = get_llm_suggestion(

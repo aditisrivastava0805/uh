@@ -149,10 +149,9 @@ def modernize_adaptation_pod_scripts(repo_path, uplift_config):
     print(f"Target Python Version: {uplift_config.get('target_version', '3.9')}")
     print(f"Selected Modules: {uplift_config.get('selected_modules', [])}")
     
-    # Debug: Print the full config received
-    print(f"🔍 DEBUG: Full uplift_config received: {uplift_config}")
-    print(f"🔍 DEBUG: Config type: {type(uplift_config)}")
-    print(f"🔍 DEBUG: Config keys: {list(uplift_config.keys()) if isinstance(uplift_config, dict) else 'Not a dict'}")
+            # Config validation
+        if not isinstance(uplift_config, dict):
+            return {"error": "Invalid config format"}
     
     uplift_summary = []
     uplift_summary.append(f"Repository: {repo_path}")
@@ -167,9 +166,7 @@ def modernize_adaptation_pod_scripts(repo_path, uplift_config):
     
     # Filter files based on selected modules
     selected_modules = uplift_config.get('selected_modules', [])
-    print(f"🔍 DEBUG: selected_modules extracted: {selected_modules}")
-    print(f"🔍 DEBUG: selected_modules type: {type(selected_modules)}")
-    print(f"🔍 DEBUG: selected_modules length: {len(selected_modules) if selected_modules else 0}")
+            # Extract selected modules
     
     if selected_modules:
         python_files = []
@@ -185,7 +182,7 @@ def modernize_adaptation_pod_scripts(repo_path, uplift_config):
                 print(f"Skipping {file_path} - not in selected modules")
     else:
         # If no modules selected, process all files
-        print("🔍 DEBUG: No selected modules found, processing all files")
+        print("Processing all available modules")
         python_files = all_python_files
     
     if not python_files:
@@ -318,9 +315,7 @@ def modernization_process():
         process_status = "RUNNING"
         current_stage = "starting"
         
-        # Debug: Print the current config state
-        print(f"🔍 DEBUG: modernization_process started with config: {uplift_config}")
-        print(f"🔍 DEBUG: selected_libraries: {selected_libraries}")
+        print(f"Starting modernization process...")
         
         send_event("process", "status", "started")
         send_event("process", "log", "Starting Python modernization process...")
@@ -349,10 +344,7 @@ def modernization_process():
             send_event("process", "log", f"Adaptation pod repository not found: {adaptation_pod_path}")
             return False
         
-        # Debug: Print the config being passed to the function
-        print(f"🔍 DEBUG: Calling modernize_adaptation_pod_scripts with config: {uplift_config}")
-        print(f"🔍 DEBUG: Config type: {type(uplift_config)}")
-        print(f"🔍 DEBUG: Config keys: {list(uplift_config.keys()) if isinstance(uplift_config, dict) else 'Not a dict'}")
+        # Call modernization function
         
         success = modernize_adaptation_pod_scripts(adaptation_pod_path, uplift_config)
         
