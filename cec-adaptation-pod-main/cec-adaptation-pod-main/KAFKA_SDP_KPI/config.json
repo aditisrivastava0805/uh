@@ -1,0 +1,28 @@
+{
+    "module_name": "KAFKA_SDP_KPI",
+    "description": "Kafka SDP KPI Processing Module",
+    "version": "1.0.0",
+    "main_file": "kafka_sdpkpi.py",
+    "dependencies": [
+        "kafka-python",
+        "json",
+        "subprocess",
+        "socket",
+        "datetime"
+    ],
+    "kafka_config": {
+        "polaris_ips": ["5.232.36.216"],
+        "titan_ips": ["5.232.36.216"],
+        "port": "9092",
+        "topic": "validation.svc_ss_incoming_msgs"
+    },
+    "input_paths": {
+        "kpi_source": "/home/resolveSDP/output/",
+        "archive_path": "/home/resolveSDP/archive/"
+    },
+    "supported_operations": [
+        "kpi_processing",
+        "kafka_publishing",
+        "data_archiving"
+    ]
+} 

@@ -1,0 +1,14 @@
+# KAFKA_SDP_KPI Module Dependencies
+# Note: This module uses kafka-python which is deprecated
+# Consider upgrading to kafka-python for Python 3 compatibility
+
+# Core dependencies
+kafka-python>=1.4.7
+
+# Optional: For enhanced functionality
+# requests>=2.25.1  # Uncomment if using HTTP requests
+# python-dateutil>=2.8.2  # Uncomment if using advanced date parsing
+
+# Development dependencies (for testing)
+# pytest>=6.0.0  # Uncomment for testing
+# mock>=4.0.0    # Uncomment for mocking in tests 
