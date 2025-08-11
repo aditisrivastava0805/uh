@@ -648,6 +648,13 @@ def modernize_with_smart_chunking(code, analysis_findings, target_version, selec
     chunks = split_code_into_api_chunks(code)
     print(f"📦 Split code into {len(chunks)} API-compatible chunks")
     
+    # Validate chunk structure and ensure imports are preserved
+    for i, chunk in enumerate(chunks):
+        print(f"📋 Chunk {i+1}: {len(chunk['code'])/1024:.1f}KB, Complete structures: {chunk.get('complete_structures', False)}")
+    
+    # Ensure all imports are in the first chunk
+    chunks = ensure_imports_in_first_chunk(chunks)
+    
     modernized_chunks = []
     change_summary_parts = []
     
@@ -678,9 +685,15 @@ def modernize_with_smart_chunking(code, analysis_findings, target_version, selec
                 modernized_chunks.append(fallback_result['code'])
                 change_summary_parts.append(f"Chunk {i+1}: Fallback modernization")
     
-    # Reassemble the modernized chunks
+    # Reassemble the modernized chunks with structure validation
     print(f"🔧 Reassembling {len(modernized_chunks)} chunks...")
-    final_code = '\n'.join(modernized_chunks)
+    final_code = reassemble_chunks_intelligently(modernized_chunks, chunks)
+    
+    # Validate the reassembled code
+    if validate_reassembled_code(final_code):
+        print(f"✅ Code structure validation passed")
+    else:
+        print(f"⚠️  Code structure validation failed - manual review recommended")
     
     # Combine change summaries
     final_summary = f"Large file modernized using smart chunking:\n" + "\n".join(change_summary_parts)
@@ -689,7 +702,7 @@ def modernize_with_smart_chunking(code, analysis_findings, target_version, selec
     return final_code, final_summary
 
 def split_code_into_api_chunks(code):
-    """Split code into chunks that fit within API token limits."""
+    """Split code into chunks that respect Python code structure and logical boundaries."""
     lines = code.split('\n')
     chunks = []
     
@@ -699,37 +712,37 @@ def split_code_into_api_chunks(code):
     current_chunk_size = 0
     chunk_number = 1
     
-    for line in lines:
+    # Parse the code to understand its structure
+    code_structure = analyze_code_structure(lines)
+    
+    for i, line in enumerate(lines):
         line_size = len(line) + 1  # +1 for newline
         
-        # If adding this line would exceed target size, start new chunk
+        # Check if we need to start a new chunk
         if current_chunk_size + line_size > target_chunk_size and current_chunk:
-            # Try to find a better break point (blank line or function boundary)
-            better_break = False
+            # Find the best break point that respects code structure
+            best_break_point = find_structural_break_point(current_chunk, code_structure, i - len(current_chunk))
             
-            # Look for blank lines in the last few lines of current chunk
-            for j in range(len(current_chunk) - 1, max(0, len(current_chunk) - 5), -1):
-                if current_chunk[j].strip() == '':
-                    # Found a blank line - break here
-                    chunks.append({
-                        'name': f'Chunk_{chunk_number}',
-                        'code': '\n'.join(current_chunk[:j+1]).rstrip(),
-                        'start_line': 0,
-                        'end_line': 0
-                    })
-                    # Start new chunk with remaining lines
-                    current_chunk = current_chunk[j+1:] + [line]
-                    current_chunk_size = sum(len(l) + 1 for l in current_chunk)
-                    better_break = True
-                    break
-            
-            if not better_break:
-                # No good break point found, just break here
+            if best_break_point > 0:
+                # Break at the best point
+                chunks.append({
+                    'name': f'Chunk_{chunk_number}',
+                    'code': '\n'.join(current_chunk[:best_break_point]).rstrip(),
+                    'start_line': 0,
+                    'end_line': 0,
+                    'complete_structures': True
+                })
+                # Start new chunk with remaining lines
+                current_chunk = current_chunk[best_break_point:]
+                current_chunk_size = sum(len(l) + 1 for l in current_chunk)
+            else:
+                # No good break point, force break but preserve current structure
                 chunks.append({
                     'name': f'Chunk_{chunk_number}',
                     'code': '\n'.join(current_chunk).rstrip(),
                     'start_line': 0,
-                    'end_line': 0
+                    'end_line': 0,
+                    'complete_structures': False
                 })
                 current_chunk = [line]
                 current_chunk_size = line_size
@@ -746,10 +759,154 @@ def split_code_into_api_chunks(code):
             'name': f'Chunk_{chunk_number}',
             'code': '\n'.join(current_chunk).rstrip(),
             'start_line': 0,
-            'end_line': 0
+            'end_line': 0,
+            'complete_structures': True
         })
     
     return chunks
+
+def analyze_code_structure(lines):
+    """Analyze the structure of the code to identify functions, classes, and blocks."""
+    structure = {
+        'functions': [],
+        'classes': [],
+        'blocks': [],
+        'imports': []
+    }
+    
+    current_indent = 0
+    in_function = False
+    in_class = False
+    function_start = -1
+    class_start = -1
+    
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+            
+        # Track indentation
+        if line.startswith(' '):
+            current_indent = len(line) - len(line.lstrip())
+        
+        # Detect function definitions
+        if stripped.startswith(('def ', 'async def ')):
+            if in_function:
+                # End previous function
+                structure['functions'].append((function_start, i - 1))
+            in_function = True
+            function_start = i
+        
+        # Detect class definitions
+        if stripped.startswith('class '):
+            if in_class:
+                # End previous class
+                structure['classes'].append((class_start, i - 1))
+            in_class = True
+            class_start = i
+        
+        # Detect imports
+        if stripped.startswith(('import ', 'from ')):
+            structure['imports'].append(i)
+        
+        # Detect block endings
+        if in_function and current_indent == 0 and stripped and not stripped.startswith(('def ', 'class ')):
+            if not stripped.startswith('#'):
+                in_function = False
+                structure['functions'].append((function_start, i - 1))
+                function_start = -1
+        
+        if in_class and current_indent == 0 and stripped and not stripped.startswith(('def ', 'class ')):
+            if not stripped.startswith('#'):
+                in_class = False
+                structure['classes'].append((class_start, i - 1))
+                class_start = -1
+    
+    # Handle any remaining open structures
+    if in_function:
+        structure['functions'].append((function_start, len(lines) - 1))
+    if in_class:
+        structure['classes'].append((class_start, len(lines) - 1))
+    
+    return structure
+
+def find_structural_break_point(chunk_lines, code_structure, chunk_start_line):
+    """Find the best break point that preserves code structure."""
+    if not chunk_lines:
+        return 0
+    
+    chunk_end_line = chunk_start_line + len(chunk_lines) - 1
+    
+    # Look for natural break points in reverse order
+    for i in range(len(chunk_lines) - 1, -1, -1):
+        line = chunk_lines[i].strip()
+        current_line = chunk_start_line + i
+        
+        # Perfect break points (blank lines at top level)
+        if line == '' and is_at_top_level(current_line, code_structure):
+            return i + 1
+        
+        # End of import section
+        if line.startswith(('def ', 'class ', 'if ', 'for ', 'while ', 'try:', 'except:', 'finally:')):
+            if i > 0 and chunk_lines[i-1].strip() == '':
+                return i
+        
+        # End of complete block
+        if line in ['pass', 'return', 'break', 'continue', 'raise'] and is_at_top_level(current_line, code_structure):
+            return i + 1
+    
+    # If no perfect break point, look for reasonable ones
+    for i in range(len(chunk_lines) - 1, -1, -1):
+        line = chunk_lines[i].strip()
+        
+        # Blank lines are always good break points
+        if line == '':
+            return i + 1
+        
+        # End of comment blocks
+        if line.startswith('#'):
+            if i > 0 and not chunk_lines[i-1].strip().startswith('#'):
+                return i + 1
+    
+    # Last resort: break at a reasonable point, but avoid breaking functions/classes
+    safe_break = find_safe_break_point(chunk_lines, code_structure, chunk_start_line)
+    return safe_break
+
+def is_at_top_level(line_number, code_structure):
+    """Check if a line is at the top level (not inside a function or class)."""
+    for start, end in code_structure['functions']:
+        if start <= line_number <= end:
+            return False
+    for start, end in code_structure['classes']:
+        if start <= line_number <= end:
+            return False
+    return True
+
+def find_safe_break_point(chunk_lines, code_structure, chunk_start_line):
+    """Find a safe break point that doesn't break functions or classes."""
+    chunk_end_line = chunk_start_line + len(chunk_lines) - 1
+    
+    # Check if we're inside a function or class
+    for start, end in code_structure['functions']:
+        if start <= chunk_start_line <= end:
+            # We're inside a function, find its end
+            if end <= chunk_end_line:
+                return end - chunk_start_line + 1
+            else:
+                # Function extends beyond this chunk, don't break
+                return 0
+    
+    for start, end in code_structure['classes']:
+        if start <= chunk_start_line <= end:
+            # We're inside a class, find its end
+            if end <= chunk_end_line:
+                return end - chunk_start_line + 1
+            else:
+                # Class extends beyond this chunk, don't break
+                return 0
+    
+    # We're at top level, safe to break
+    return max(1, len(chunk_lines) // 2)
 
 def create_python_prompt(code, analysis_findings, target_version, context_section):
     """Create a concise Python modernization prompt to save tokens."""
@@ -866,11 +1023,95 @@ def modernize_chunk_with_fallback(chunk, target_version):
         'summary': f"Chunk {chunk['start_line']}-{chunk['end_line']}: Fallback modernization applied - {', '.join(changes)}"
     }
 
-def reassemble_chunks(modernized_chunks, original_chunks):
-    """Reassemble modernized chunks into a complete file."""
-    # For now, simple concatenation with newlines
-    # This could be enhanced to preserve exact line numbers and spacing
-    return '\n\n'.join(modernized_chunks)
+def reassemble_chunks_intelligently(modernized_chunks, original_chunks):
+    """Reassemble chunks while preserving code structure and adding necessary separators."""
+    if not modernized_chunks:
+        return ""
+    
+    reassembled_parts = []
+    
+    for i, (chunk_code, original_chunk) in enumerate(zip(modernized_chunks, original_chunks)):
+        # Add chunk code
+        reassembled_parts.append(chunk_code)
+        
+        # Add separator if this chunk doesn't end with a blank line and next chunk doesn't start with one
+        if i < len(modernized_chunks) - 1:
+            current_chunk_ends_with_blank = chunk_code.rstrip().endswith('\n\n') or chunk_code.rstrip().endswith('')
+            next_chunk_starts_with_blank = modernized_chunks[i + 1].lstrip().startswith('\n') or modernized_chunks[i + 1].lstrip() == ''
+            
+            # Add separator if needed
+            if not current_chunk_ends_with_blank and not next_chunk_starts_with_blank:
+                # Check if we're between different code structures
+                if original_chunk.get('complete_structures', False):
+                    reassembled_parts.append('\n')
+    
+    return '\n'.join(reassembled_parts)
+
+def validate_reassembled_code(code):
+    """Basic validation that the reassembled code has proper Python syntax structure."""
+    try:
+        # Check for basic Python syntax issues
+        lines = code.split('\n')
+        
+        # Check for unmatched indentation
+        indent_stack = []
+        line_number = 0
+        
+        for i, line in enumerate(lines):
+            line_number = i + 1
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#'):
+                continue
+                
+            current_indent = len(line) - len(line.lstrip())
+            
+            # Check for indentation errors - allow for nested structures
+            if current_indent > 0 and indent_stack:
+                # Allow indentation up to 8 spaces more than the previous level
+                # This handles nested structures like dictionaries, lists, etc.
+                max_allowed = indent_stack[-1] + 8
+                if current_indent > max_allowed:
+                    print(f"⚠️  Indentation error at line {line_number}: unexpected indentation level {current_indent} (expected max {max_allowed})")
+                    return False
+            
+            # Track indentation changes
+            if stripped.endswith(':'):
+                indent_stack.append(current_indent)
+            elif stripped in ['pass', 'return', 'break', 'continue', 'raise']:
+                if indent_stack:
+                    indent_stack.pop()
+        
+        # Check for basic syntax patterns
+        def_count = code.count('def ')
+        colon_count = code.count(':')
+        
+        # Count only colons that are likely to be function/class related
+        # Exclude colons in strings, comments, etc.
+        relevant_colons = 0
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith(('def ', 'class ', 'if ', 'for ', 'while ', 'try:', 'except:', 'finally:', 'else:', 'elif ')):
+                relevant_colons += 1
+        
+        if def_count > relevant_colons:
+            print(f"⚠️  Mismatched function definitions ({def_count}) and relevant colons ({relevant_colons})")
+            return False
+            
+        class_count = code.count('class ')
+        if class_count > relevant_colons:
+            print(f"⚠️  Mismatched class definitions ({class_count}) and relevant colons ({relevant_colons})")
+            return False
+        
+        # Check for balanced parentheses and brackets
+        if code.count('(') != code.count(')') or code.count('[') != code.count(']') or code.count('{') != code.count('}'):
+            print("⚠️  Unbalanced parentheses, brackets, or braces")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"⚠️  Code validation error: {e}")
+        return False
 
 def extract_change_summary(response):
     """Extract change summary from LLM response."""
@@ -1330,6 +1571,73 @@ def run_cli_modernization():
         import traceback
         traceback.print_exc()
         return False
+
+def extract_imports_from_chunks(chunks):
+    """Extract all import statements from chunks to ensure they're preserved."""
+    all_imports = set()
+    
+    for chunk in chunks:
+        lines = chunk['code'].split('\n')
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith(('import ', 'from ')):
+                # Normalize the import statement to avoid duplicates
+                normalized = stripped
+                all_imports.add(normalized)
+    
+    return sorted(list(all_imports))
+
+def ensure_imports_in_first_chunk(chunks):
+    """Ensure all imports are present in the first chunk."""
+    if not chunks:
+        return chunks
+    
+    # Extract all unique imports from all chunks
+    all_imports = extract_imports_from_chunks(chunks)
+    
+    if not all_imports:
+        return chunks
+    
+    # Find the first chunk that should contain imports
+    first_chunk = chunks[0]
+    first_chunk_lines = first_chunk['code'].split('\n')
+    
+    # Find where imports should be inserted (after shebang and docstring)
+    actual_insert_index = 0
+    for i, line in enumerate(first_chunk_lines):
+        stripped = line.strip()
+        if stripped.startswith('#!/'):
+            actual_insert_index = i + 1
+        elif stripped.startswith('"""') or stripped.startswith("'''"):
+            # Find the end of the docstring
+            for j in range(i + 1, len(first_chunk_lines)):
+                if first_chunk_lines[j].strip().endswith('"""') or first_chunk_lines[j].strip().endswith("'''"):
+                    actual_insert_index = j + 1
+                    break
+            break
+        elif stripped and not stripped.startswith('#'):
+            actual_insert_index = i
+            break
+    
+    # Get existing imports from the entire first chunk
+    existing_imports = set()
+    for line in first_chunk_lines:
+        stripped = line.strip()
+        if stripped.startswith(('import ', 'from ')):
+            existing_imports.add(stripped)
+    
+    # Find missing imports (only add what's not already there)
+    missing_imports = [imp for imp in all_imports if imp not in existing_imports]
+    
+    if missing_imports:
+        # Insert missing imports at the beginning of the file (after shebang and docstring)
+        new_lines = first_chunk_lines[:actual_insert_index] + missing_imports + first_chunk_lines[actual_insert_index:]
+        chunks[0]['code'] = '\n'.join(new_lines)
+        print(f"📦 Added {len(missing_imports)} missing imports to first chunk")
+    else:
+        print("📦 All imports already present in first chunk")
+    
+    return chunks
 
 if __name__ == "__main__":
     import sys
