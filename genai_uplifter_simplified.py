@@ -685,6 +685,19 @@ Your task is to IMPLEMENT ONLY the modernization changes identified in the analy
 If you are unsure whether to change something, LEAVE IT UNCHANGED.
 It's better to preserve potentially problematic code than to accidentally delete important functionality.
 
+🚨 ABSOLUTELY FORBIDDEN - NEVER DO THIS:
+- Replace code sections with comments like "# rest of class methods..."
+- Use placeholder text like "# ..." or "# truncated"
+- Summarize or condense code sections
+- Skip any part of the original code
+- Add comments that suggest code was omitted
+
+✅ YOU MUST:
+- Include ALL original code exactly as-is
+- Only modify the specific modernization opportunities identified
+- Preserve every line, function, class, and import
+- Keep all business logic intact
+
 Format your response as:
 
 <change_summary>
@@ -721,8 +734,27 @@ def extract_change_summary(response):
         return f"Error extracting change summary: {e}"
 
 def extract_updated_code(response, file_type):
-    """Extract updated code from LLM response using multiple patterns."""
+    """Extract updated code from LLM response using multiple patterns with TRUNCATION DETECTION."""
     import re
+    
+    # CRITICAL: Check for truncation indicators that suggest incomplete code
+    truncation_indicators = [
+        r'#\s*rest\s+of\s+.*',  # "# rest of class methods..."
+        r'#\s*\.\.\.',  # "# ..."
+        r'#\s*truncated',  # "# truncated"
+        r'#\s*end\s+of\s+file',  # "# end of file"
+        r'#\s*remaining\s+code',  # "# remaining code"
+        r'#\s*continue\s+below',  # "# continue below"
+        r'#\s*see\s+above',  # "# see above"
+        r'#\s*omitted\s+for\s+brevity',  # "# omitted for brevity"
+    ]
+    
+    # Check if response contains truncation indicators
+    for pattern in truncation_indicators:
+        if re.search(pattern, response, re.IGNORECASE):
+            print(f"🚨 CRITICAL: Detected truncation indicator: {pattern}")
+            print(f"❌ This suggests the LLM response is incomplete - REJECTING")
+            return None
     
     # Try multiple patterns to extract code
     patterns = [
@@ -744,6 +776,12 @@ def extract_updated_code(response, file_type):
             extracted = match.group(1).strip()
             if len(extracted) > 100:  # Ensure it's substantial code
                 print(f"✅ Code extracted using pattern {i}")
+                
+                # CRITICAL: Additional validation for extracted code
+                if not is_code_complete(extracted):
+                    print(f"❌ Extracted code appears incomplete - REJECTING")
+                    return None
+                
                 return extracted
             else:
                 print(f"⚠️  Pattern {i} matched but content too short ({len(extracted)} chars)")
@@ -751,13 +789,78 @@ def extract_updated_code(response, file_type):
     # If no patterns work, check if the entire content looks like Python code
     if response.strip().startswith(('#!', 'import ', 'from ', 'def ', 'class ')):
         print("✅ Using entire content as it appears to be Python code")
+        
+        # CRITICAL: Validate even the entire response
+        if not is_code_complete(response.strip()):
+            print(f"❌ Entire response appears incomplete - REJECTING")
+            return None
+            
         return response.strip()
     
     print("❌ No code extraction pattern matched")
     return None
 
+def is_code_complete(code_text):
+    """Validate that extracted code appears complete and not truncated."""
+    
+    # Check for common truncation patterns
+    truncation_patterns = [
+        r'#\s*rest\s+of\s+.*',
+        r'#\s*\.\.\.',
+        r'#\s*truncated',
+        r'#\s*end\s+of\s+file',
+        r'#\s*remaining\s+code',
+        r'#\s*continue\s+below',
+        r'#\s*see\s+above',
+        r'#\s*omitted\s+for\s+brevity',
+        r'#\s*and\s+so\s+on',
+        r'#\s*etc\.',
+    ]
+    
+    for pattern in truncation_patterns:
+        if re.search(pattern, code_text, re.IGNORECASE):
+            print(f"🚨 CRITICAL: Code contains truncation pattern: {pattern}")
+            return False
+    
+    # Check for incomplete structures (unclosed brackets, braces, parentheses)
+    open_brackets = code_text.count('[') - code_text.count(']')
+    open_braces = code_text.count('{') - code_text.count('}')
+    open_parens = code_text.count('(') - code_text.count(')')
+    
+    if open_brackets != 0 or open_braces != 0 or open_parens != 0:
+        print(f"🚨 CRITICAL: Code has unbalanced brackets/braces/parentheses")
+        print(f"   Brackets: {open_brackets}, Braces: {open_braces}, Parentheses: {open_parens}")
+        return False
+    
+    # Check for incomplete function/class definitions
+    incomplete_patterns = [
+        r'def\s+\w+\s*\([^)]*\)\s*$',  # Function definition without body
+        r'class\s+\w+\s*\([^)]*\)\s*$',  # Class definition without body
+        r'if\s+.*:\s*$',  # If statement without body
+        r'for\s+.*:\s*$',  # For loop without body
+        r'while\s+.*:\s*$',  # While loop without body
+        r'try\s*:\s*$',  # Try block without body
+        r'except\s+.*:\s*$',  # Except block without body
+    ]
+    
+    for pattern in incomplete_patterns:
+        if re.search(pattern, code_text, re.MULTILINE):
+            print(f"🚨 CRITICAL: Code has incomplete structure: {pattern}")
+            return False
+    
+    # Check if code ends with proper indentation (suggesting incomplete block)
+    lines = code_text.split('\n')
+    if lines and lines[-1].strip() and lines[-1].startswith('    '):
+        print(f"⚠️  WARNING: Code ends with indented line - may be incomplete")
+        # Don't reject for this, but warn
+    
+    print(f"✅ Code completeness validation passed")
+    return True
+
 def validate_code_safety(original_code, modernized_code):
     """Validate that no critical code was lost during modernization."""
+    
+    print(f"🔒 Running comprehensive code safety validation...")
     
     # Critical patterns that must be preserved
     critical_patterns = [
@@ -770,6 +873,7 @@ def validate_code_safety(original_code, modernized_code):
         (r"'''[\s\S]*?'''", 'docstrings'),
     ]
     
+    # Check pattern preservation
     for pattern, description in critical_patterns:
         original_count = len(re.findall(pattern, original_code, re.MULTILINE))
         modernized_count = len(re.findall(pattern, modernized_code, re.MULTILINE))
@@ -791,6 +895,47 @@ def validate_code_safety(original_code, modernized_code):
         print(f"❌ CRITICAL: Code length reduced by more than 10% ({original_length} -> {modernized_length})")
         return False
     
+    # NEW: Check for logic structure preservation
+    logic_patterns = [
+        (r'if\s+.*:', 'if statements'),
+        (r'for\s+.*:', 'for loops'),
+        (r'while\s+.*:', 'while loops'),
+        (r'try\s*:', 'try blocks'),
+        (r'except\s+.*:', 'except blocks'),
+        (r'finally\s*:', 'finally blocks'),
+        (r'with\s+.*:', 'with statements'),
+        (r'return\s+', 'return statements'),
+        (r'raise\s+', 'raise statements'),
+    ]
+    
+    for pattern, description in logic_patterns:
+        original_count = len(re.findall(pattern, original_code, re.MULTILINE))
+        modernized_count = len(re.findall(pattern, modernized_code, re.MULTILINE))
+        
+        if modernized_count < original_count:
+            print(f"❌ CRITICAL: {description} reduced from {original_count} to {modernized_count}")
+            return False
+    
+    # NEW: Check for variable and function name preservation
+    var_pattern = r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s*='
+    original_vars = set(re.findall(var_pattern, original_code))
+    modernized_vars = set(re.findall(var_pattern, modernized_code))
+    
+    # Allow some variable changes (new ones might be added during modernization)
+    if len(original_vars - modernized_vars) > len(original_vars) * 0.1:  # More than 10% of variables lost
+        print(f"❌ CRITICAL: Too many variables lost: {len(original_vars - modernized_vars)} out of {len(original_vars)}")
+        return False
+    
+    # NEW: Check for function call preservation
+    func_call_pattern = r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
+    original_calls = set(re.findall(func_call_pattern, original_code))
+    modernized_calls = set(re.findall(func_call_pattern, modernized_code))
+    
+    if len(original_calls - modernized_calls) > len(original_calls) * 0.1:  # More than 10% of function calls lost
+        print(f"❌ CRITICAL: Too many function calls lost: {len(original_calls - modernized_calls)} out of {len(original_calls)}")
+        return False
+    
+    print(f"✅ Code safety validation passed - all critical elements preserved")
     return True
 
 def find_python_files(directory):
@@ -851,7 +996,8 @@ def modernize_adaptation_pod_scripts(repo_path, target_python_version="3.9", sel
             )
             
             if updated_code:
-                # Safety check: Ensure no critical code was lost
+                # Enhanced safety check: Ensure no critical code was lost
+                print(f"🔒 Running safety validation...")
                 safety_check_passed = validate_code_safety(original_code, updated_code)
                 
                 if not safety_check_passed:
@@ -859,19 +1005,78 @@ def modernize_adaptation_pod_scripts(repo_path, target_python_version="3.9", sel
                     print(f"🔄 Restoring from backup and skipping modernization")
                     continue
                 
+                # Additional validation: Check if modernization actually made meaningful changes
+                if updated_code == original_code:
+                    print(f"⚠️  WARNING: No changes were made to {file_path}")
+                    print(f"🔄 Skipping backup creation and file update")
+                    continue
+                
+                # CRITICAL: Final check for truncation indicators in the modernized code
+                truncation_indicators = [
+                    r'#\s*rest\s+of\s+.*',
+                    r'#\s*\.\.\.',
+                    r'#\s*truncated',
+                    r'#\s*end\s+of\s+file',
+                    r'#\s*remaining\s+code',
+                    r'#\s*continue\s+below',
+                    r'#\s*see\s+above',
+                    r'#\s*omitted\s+for\s+brevity',
+                ]
+                
+                for pattern in truncation_indicators:
+                    if re.search(pattern, updated_code, re.IGNORECASE):
+                        print(f"🚨 CRITICAL: Modernized code contains truncation indicator: {pattern}")
+                        print(f"❌ This suggests the LLM truncated the code - REJECTING")
+                        print(f"🔄 Skipping modernization for {file_path}")
+                        continue
+                
+                # Check if changes are reasonable (not too many lines changed)
+                original_lines = original_code.split('\n')
+                updated_lines = updated_code.split('\n')
+                
+                if len(updated_lines) < len(original_lines) * 0.8:  # More than 20% of lines lost
+                    print(f"❌ SAFETY CHECK FAILED: Too many lines lost in {file_path}")
+                    print(f"🔄 Restoring from backup and skipping modernization")
+                    continue
+                
+                print(f"✅ Safety validation passed - proceeding with modernization")
+                
                 # Create backup
                 backup_file = file_path + ".backup"
                 with open(backup_file, 'w', encoding='utf-8') as f:
                     f.write(original_code)
                 print(f"Backup created: {backup_file}")
                 
-                # Save updated code
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(updated_code)
-                
-                print(f"✅ Successfully modernized: {file_path}")
-                print(f"Change Summary: {change_summary}")
-                success_count += 1
+                # Save updated code with rollback protection
+                try:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(updated_code)
+                    
+                    # Verify the file was written correctly
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        written_code = f.read()
+                    
+                    if written_code != updated_code:
+                        raise Exception("File write verification failed")
+                    
+                    print(f"✅ Successfully modernized: {file_path}")
+                    print(f"Change Summary: {change_summary}")
+                    success_count += 1
+                    
+                except Exception as write_error:
+                    print(f"❌ ERROR: Failed to write modernized code to {file_path}")
+                    print(f"🔄 Rolling back to original code...")
+                    
+                    # Rollback to original code
+                    try:
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(original_code)
+                        print(f"✅ Rollback successful - file restored to original state")
+                    except Exception as rollback_error:
+                        print(f"❌ CRITICAL: Rollback failed! File may be corrupted: {rollback_error}")
+                        print(f"🆘 Manual intervention required for {file_path}")
+                    
+                    continue
             else:
                 print(f"❌ Failed to modernize: {file_path}")
                 
