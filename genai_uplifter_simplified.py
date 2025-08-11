@@ -65,34 +65,38 @@ def get_rag_context(python_code, analysis_findings, target_python_version, selec
             guidance_query += f" for: {analysis_findings}"
         
         # Use the extract_java_guidance function but with Python context
-        from rag_utils import extract_java_guidance
-        guidance_result = extract_java_guidance(
-            code_issue=guidance_query,
-            context=f"Target Python version: {target_python_version}. Focus on Python modernization, not Java."
-        )
-        
-        if guidance_result.get("guidance_found"):
-            # Format the guidance for the LLM prompt
-            context_parts = []
-            context_parts.append(f"PYTHON MODERNIZATION GUIDANCE: {guidance_result['summary']}")
+        try:
+            from rag_utils import extract_java_guidance
+            guidance_result = extract_java_guidance(
+                code_issue=guidance_query,
+                context=f"Target Python version: {target_python_version}. Focus on Python modernization, not Java."
+            )
             
-            detailed_guidance = guidance_result.get("detailed_guidance")
-            if detailed_guidance and isinstance(detailed_guidance, list):
-                context_parts.append("\nDETAILED PYTHON GUIDANCE:")
-                # Safely slice the list, ensuring it's a list first
-                for item in detailed_guidance[:3]:  # Limit to top 3
-                    if isinstance(item, dict):
-                        source = item.get("source", "Unknown")
-                        content = item.get("content", "")[:300]  # Limit content length
-                        context_parts.append(f"- From {source}: {content}")
-            
-            libraries_used = guidance_result.get("libraries_searched", [])
-            if libraries_used and isinstance(libraries_used, list):
-                context_parts.append(f"\nPython Sources: {', '.join(libraries_used[:3])}")
-            
-            return "\n".join(context_parts)
-        else:
-            return "No specific Python RAG guidance found for this modernization scenario."
+            if guidance_result and isinstance(guidance_result, dict) and guidance_result.get("guidance_found"):
+                # Format the guidance for the LLM prompt
+                context_parts = []
+                context_parts.append(f"PYTHON MODERNIZATION GUIDANCE: {guidance_result.get('summary', 'Available')}")
+                
+                detailed_guidance = guidance_result.get("detailed_guidance")
+                if detailed_guidance and isinstance(detailed_guidance, list):
+                    context_parts.append("\nDETAILED PYTHON GUIDANCE:")
+                    # Safely slice the list, ensuring it's a list first
+                    for item in detailed_guidance[:3]:  # Limit to top 3
+                        if isinstance(item, dict):
+                            source = item.get("source", "Unknown")
+                            content = item.get("content", "")[:300]  # Limit content length
+                            context_parts.append(f"- From {source}: {content}")
+                
+                libraries_used = guidance_result.get("libraries_searched", [])
+                if libraries_used and isinstance(libraries_used, list):
+                    context_parts.append(f"\nPython Sources: {', '.join(libraries_used[:3])}")
+                
+                return "\n".join(context_parts)
+            else:
+                return "No specific Python RAG guidance found for this modernization scenario."
+        except Exception as rag_error:
+            print(f"Warning: RAG guidance extraction failed: {rag_error}")
+            return "Python RAG guidance unavailable - proceeding with standard modernization."
             
     except Exception as e:
         print(f"Warning: Error getting RAG context: {e}")
@@ -118,14 +122,18 @@ def analyze_python_code(python_file_path, target_python_version):
         return f"Error reading Python file: {e}"
 
     # Phase 1: LLM-based analysis (primary detection)
+    print(f"🔍 Phase 1: LLM Analysis...")
     llm_analysis = get_llm_analysis(python_code, target_python_version)
     
     # Phase 2: Regex validation (double-check and catch missed items)
+    print(f"🔍 Phase 2: Regex Validation...")
     regex_validation = validate_with_regex(python_code, target_python_version)
     
     # Phase 3: Combine and prioritize findings
+    print(f"🔍 Phase 3: Combining Results...")
     combined_findings = combine_analysis_findings(llm_analysis, regex_validation)
     
+    print(f"✅ Analysis completed for {python_file_path}")
     return combined_findings
 
 def get_llm_analysis(python_code, target_python_version):
@@ -149,6 +157,16 @@ def get_llm_analysis(python_code, target_python_version):
         
         # Call LLM for analysis
         response = call_llm_for_analysis(analysis_prompt)
+        
+        # Clean up the response to prevent duplicate processing
+        if response and isinstance(response, str):
+            # Remove any markdown formatting that might cause issues
+            clean_response = response.replace('**', '').replace('*', '').replace('#', '')
+            # Limit length to prevent excessive output
+            if len(clean_response) > 800:
+                clean_response = clean_response[:800] + "..."
+            return clean_response
+        
         return response
         
     except Exception as e:
@@ -203,15 +221,21 @@ def combine_analysis_findings(llm_analysis, regex_validation):
     
     # Add LLM findings first (primary source)
     if llm_analysis and llm_analysis != "LLM analysis unavailable":
-        combined.append(f"LLM Analysis: {llm_analysis}")
+        # Clean up LLM analysis output - remove markdown formatting and truncate if too long
+        clean_llm = llm_analysis.replace('**', '').replace('*', '')
+        if len(clean_llm) > 500:
+            clean_llm = clean_llm[:500] + "..."
+        combined.append(f"LLM Analysis: {clean_llm}")
     
     # Add regex validation findings (secondary source)
-    if regex_validation:
-        combined.append("\nRegex Validation:")
-        combined.extend(regex_validation)
+    if regex_validation and isinstance(regex_validation, list):
+        combined.append("Regex Validation:")
+        # Remove duplicates from regex validation
+        unique_regex = list(dict.fromkeys(regex_validation))  # Preserve order while removing duplicates
+        combined.extend(unique_regex)
     
     # Always provide modernization guidance for Python 2 style code
-    if regex_validation and any("print statements" in item or "% formatting" in item for item in regex_validation):
+    if regex_validation and isinstance(regex_validation, list) and any("print statements" in item or "% formatting" in item for item in regex_validation):
         combined.append("- This file contains Python 2 style code that should be modernized for Python 3 compatibility")
     
     if combined:
@@ -811,10 +835,13 @@ def modernize_adaptation_pod_scripts(repo_path, target_python_version="3.9", sel
                 original_code = f.read()
             
             # Analyze Python code using hybrid LLM + regex approach
+            print(f"🔍 Starting analysis...")
             analysis_findings = analyze_python_code(file_path, target_python_version)
-            print(f"Analysis: {analysis_findings}")
+            print(f"✅ Analysis completed")
+            print(f"📝 Analysis Summary: {analysis_findings[:200]}...")
             
             # Get LLM suggestion for modernization
+            print(f"🤖 Starting LLM modernization...")
             updated_code, change_summary = get_llm_suggestion(
                 original_code, 
                 analysis_findings, 
