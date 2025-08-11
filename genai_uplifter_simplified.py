@@ -682,8 +682,15 @@ def modernize_with_smart_chunking(code, analysis_findings, target_version, selec
         # Process chunk normally (validation already ensured it fits)
         chunk_result = modernize_single_chunk(chunk, analysis_findings, target_version)
         if chunk_result:
-            modernized_chunks.append(chunk_result['code'])
-            change_summary_parts.append(f"Chunk {i+1}: {chunk_result['summary']}")
+            # Validate chunk quality before adding
+            if validate_chunk_quality(chunk_result['code']):
+                modernized_chunks.append(chunk_result['code'])
+                change_summary_parts.append(f"Chunk {i+1}: {chunk_result['summary']}")
+            else:
+                print(f"⚠️  Chunk {i+1} corrupted, using fallback")
+                fallback_result = modernize_chunk_with_fallback(chunk, target_version)
+                modernized_chunks.append(fallback_result['code'])
+                change_summary_parts.append(f"Chunk {i+1}: Fallback modernization (corruption detected)")
         else:
             print(f"⚠️  Chunk {i+1} failed, using fallback")
             fallback_result = modernize_chunk_with_fallback(chunk, target_version)
@@ -1122,12 +1129,15 @@ def reassemble_chunks_intelligently(modernized_chunks, original_chunks):
     reassembled_parts = []
     
     for i, (chunk_code, original_chunk) in enumerate(zip(modernized_chunks, original_chunks)):
+        # Clean up the chunk code - ensure proper newlines
+        cleaned_chunk = clean_chunk_code(chunk_code)
+        
         # Add chunk code
-        reassembled_parts.append(chunk_code)
+        reassembled_parts.append(cleaned_chunk)
         
         # Add separator if this chunk doesn't end with a blank line and next chunk doesn't start with one
         if i < len(modernized_chunks) - 1:
-            current_chunk_ends_with_blank = chunk_code.rstrip().endswith('\n\n') or chunk_code.rstrip().endswith('')
+            current_chunk_ends_with_blank = cleaned_chunk.rstrip().endswith('\n\n') or cleaned_chunk.rstrip().endswith('')
             next_chunk_starts_with_blank = modernized_chunks[i + 1].lstrip().startswith('\n') or modernized_chunks[i + 1].lstrip() == ''
             
             # Add separator if needed
@@ -1137,6 +1147,106 @@ def reassemble_chunks_intelligently(modernized_chunks, original_chunks):
                     reassembled_parts.append('\n')
     
     return '\n'.join(reassembled_parts)
+
+def clean_chunk_code(chunk_code):
+    """Clean up chunk code to fix common corruption issues."""
+    if not chunk_code:
+        return chunk_code
+    
+    import re
+    
+    # Fix missing newlines between imports
+    import_patterns = [
+        (r'import (\w+)import (\w+)', r'import \1\nimport \2'),
+        (r'from (\w+) import (\w+)from (\w+) import (\w+)', r'from \1 import \2\nfrom \3 import \4'),
+        (r'import (\w+)from (\w+) import (\w+)', r'import \1\nfrom \2 import \3'),
+        (r'from (\w+) import (\w+)import (\w+)', r'from \1 import \2\nimport \3'),
+    ]
+    
+    cleaned_code = chunk_code
+    for pattern, replacement in import_patterns:
+        cleaned_code = re.sub(pattern, replacement, cleaned_code)
+    
+    # Fix missing newlines after shebang
+    if cleaned_code.startswith('#!/'):
+        lines = cleaned_code.split('\n', 1)
+        if len(lines) > 1 and not lines[1].startswith('#'):
+            # Insert newline after shebang
+            cleaned_code = lines[0] + '\n' + lines[1]
+    
+    # Fix missing newlines between comment blocks
+    comment_patterns = [
+        (r'(# [^\n]+)(# [^\n]+)', r'\1\n\2'),
+        (r'(# [^\n]+)(import \w+)', r'\1\n\2'),
+        (r'(from \w+ import \w+)(# [^\n]+)', r'\1\n\2'),
+    ]
+    
+    for pattern, replacement in comment_patterns:
+        cleaned_code = re.sub(pattern, replacement, cleaned_code)
+    
+    # Fix missing newlines between imports and comments
+    cleaned_code = re.sub(r'(import \w+)(# [^\n]+)', r'\1\n\2', cleaned_code)
+    cleaned_code = re.sub(r'(from \w+ import \w+)(# [^\n]+)', r'\1\n\2', cleaned_code)
+    
+    # Fix missing newlines between imports and code
+    cleaned_code = re.sub(r'(import \w+)(\w+)', r'\1\n\2', cleaned_code)
+    cleaned_code = re.sub(r'(from \w+ import \w+)(\w+)', r'\1\n\2', cleaned_code)
+    
+    # Ensure proper spacing around class and function definitions
+    class_func_patterns = [
+        (r'(\w+)\s*class (\w+)', r'\1\n\nclass \2'),
+        (r'(\w+)\s*def (\w+)', r'\1\n\ndef \2'),
+    ]
+    
+    for pattern, replacement in class_func_patterns:
+        cleaned_code = re.sub(pattern, replacement, cleaned_code)
+    
+    # Remove random modernization examples that got mixed in
+    modernization_examples = [
+        r'print "The result is", result',
+        r'if len\(my_list\) > 0:',
+        r'print "List is not empty"',
+        r'for i in range\(0, len\(my_list\)\):',
+        r'print i, my_list\[i\]',
+        r'# Before.*?# After.*?print\(.*?\)',
+        r'# Before \(Python 2 style\).*?# After \(Python 3 style\).*?print\(.*?\)',
+        r'value = len\(my_list\)',
+        r'if value > 10:',
+        r'print\(value\)',
+        r'print "Processing data\.\.\."',
+        r'for key, value in my_dict\.iteritems\(\):',
+        r'if len\(value\) > 10:',
+        r'print "Key:", key, "has a long list"',
+    ]
+    
+    for pattern in modernization_examples:
+        cleaned_code = re.sub(pattern, '', cleaned_code, flags=re.DOTALL)
+    
+    # Fix missing newlines in sys.path.append calls
+    cleaned_code = re.sub(r'(sys\.path\.append\([^)]+\))(from \w+)', r'\1\n\2', cleaned_code)
+    
+    # Fix missing newlines between class methods
+    cleaned_code = re.sub(r'(\s+def \w+[^:]*:)(\s+def \w+)', r'\1\n\2', cleaned_code)
+    
+    # Fix missing newlines between class attributes
+    cleaned_code = re.sub(r'(\s+self\.\w+[^;]*;?)(\s+self\.\w+)', r'\1\n\2', cleaned_code)
+    
+    # Remove duplicate lines
+    lines = cleaned_code.split('\n')
+    cleaned_lines = []
+    seen_lines = set()
+    
+    for line in lines:
+        stripped = line.strip()
+        if stripped and stripped not in seen_lines:
+            cleaned_lines.append(line)
+            seen_lines.add(stripped)
+        elif not stripped:
+            cleaned_lines.append(line)
+    
+    cleaned_code = '\n'.join(cleaned_lines)
+    
+    return cleaned_code
 
 def validate_reassembled_code(code):
     """Basic validation that the reassembled code has proper Python syntax structure."""
@@ -1809,6 +1919,38 @@ def ensure_chunks_fit_api(chunks, analysis_findings, target_version):
                     validated_chunks.append(sub_chunk)
     
     return validated_chunks
+
+def detect_code_corruption(code):
+    """Detect common code corruption patterns that indicate chunking issues."""
+    corruption_patterns = [
+        (r'import \w+import \w+', 'Missing newlines between imports'),
+        (r'from \w+ import \w+from \w+ import \w+', 'Missing newlines between from imports'),
+        (r'#!/usr/bin/python# Copyright', 'Missing newline after shebang'),
+        (r'# [^\n]+# [^\n]+', 'Missing newlines between comments'),
+        (r'import \w+# [^\n]+', 'Missing newline between import and comment'),
+        (r'print "[^"]*"', 'Python 2 print statements (should be modernized)'),
+        (r'for \w+, \w+ in \w+\.iteritems\(\):', 'Python 2 iteritems (should be modernized)'),
+        (r'range\(0, len\(', 'Python 2 style range (should be modernized)'),
+    ]
+    
+    corruption_issues = []
+    for pattern, description in corruption_patterns:
+        if re.search(pattern, code):
+            corruption_issues.append(description)
+    
+    return corruption_issues
+
+def validate_chunk_quality(chunk_code):
+    """Validate that a chunk hasn't been corrupted during processing."""
+    corruption_issues = detect_code_corruption(chunk_code)
+    
+    if corruption_issues:
+        print(f"⚠️  Chunk corruption detected:")
+        for issue in corruption_issues:
+            print(f"  - {issue}")
+        return False
+    
+    return True
 
 if __name__ == "__main__":
     import sys
