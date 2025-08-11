@@ -144,10 +144,26 @@ def analyze_python_code(python_file_path, target_python_version):
     if re.search(r'except\s+[A-Za-z]+,', python_code):
         analysis_findings.append("- Use 'except Exception as e:' syntax for Python 3")
     
+    # Check for % string formatting (Python 2 style)
+    if re.search(r'%[sd]', python_code) and not re.search(r'f["\']', python_code):
+        analysis_findings.append("- Consider using f-strings instead of % formatting")
+    
+    # Check for len() comparisons that could use walrus operator
+    if re.search(r'if\s+len\([^)]+\)\s*[!=]=', python_code):
+        analysis_findings.append("- Consider using walrus operator for length checks")
+    
+    # Check for string concatenation that could use f-strings
+    if re.search(r'["\'][^"\']*["\']\s*\+\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\+\s*["\']', python_code):
+        analysis_findings.append("- Consider using f-strings instead of string concatenation")
+    
+    # Always provide modernization guidance for Python 2 style code
+    if re.search(r'print\s+[^(]', python_code) or re.search(r'%[sd]', python_code):
+        analysis_findings.append("- This file contains Python 2 style code that should be modernized for Python 3 compatibility")
+    
     if analysis_findings:
         return "Python modernization opportunities found:\n" + "\n".join(analysis_findings)
     else:
-        return "No specific Python modernization opportunities identified."
+        return "Code appears to be Python 3 compatible, but can still benefit from modern Python features like f-strings, type hints, and walrus operators."
 
 def run_command(command, working_dir="."):
     """Executes a shell command and returns stdout, stderr, and return code."""
@@ -393,6 +409,34 @@ def get_llm_suggestion(code, analysis_findings, target_version, selected_librari
                 if re.search(pattern, updated_code):
                     updated_code = re.sub(pattern, r'f"\1".format(\2)', updated_code)
                     change_summary += "\n- Converted % formatting to f-string format"
+                
+                # Pattern: "text %s text" % (variable1, variable2)
+                pattern2 = r'"([^"]*%[^"]*)"\s*%\s*\(([^)]+)\)'
+                if re.search(pattern2, updated_code):
+                    updated_code = re.sub(pattern2, r'f"\1".format(\2)', updated_code)
+                    change_summary += "\n- Converted % formatting with tuple to f-string format"
+                
+                # Pattern: string concatenation with variables
+                pattern3 = r'(["\'])([^"\']*)\1\s*\+\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\+\s*(["\'])([^"\']*)\4'
+                if re.search(pattern3, updated_code):
+                    updated_code = re.sub(pattern3, r'f"\2{\3}\5"', updated_code)
+                    change_summary += "\n- Converted string concatenation to f-string format"
+            
+            if "print statements" in analysis_findings.lower():
+                # Fix print statements without parentheses
+                import re
+                
+                # Pattern: print variable (Python 2 style)
+                pattern = r'print\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$'
+                if re.search(pattern, updated_code, re.MULTILINE):
+                    updated_code = re.sub(pattern, r'print(\1)', updated_code, flags=re.MULTILINE)
+                    change_summary += "\n- Fixed print statements to use parentheses for Python 3 compatibility"
+                
+                # Pattern: print "string" (Python 2 style)
+                pattern2 = r'print\s+(["\'])([^"\']*)\1\s*$'
+                if re.search(pattern2, updated_code, re.MULTILINE):
+                    updated_code = re.sub(pattern2, r'print(\1\2\1)', updated_code, flags=re.MULTILINE)
+                    change_summary += "\n- Fixed print statements with strings to use parentheses for Python 3 compatibility"
             
             if "type hints" in analysis_findings.lower():
                 # Add basic type hints where missing
