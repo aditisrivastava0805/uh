@@ -4,7 +4,7 @@ from datetime import date
 
 
 class LoggingHandler:
-    def __init__(self, script_dir: Any):
+    def __init__(self, script_dir):
         """
         Running logger configuration
         """
@@ -15,7 +15,7 @@ class LoggingHandler:
                             datefmt='%d/%m/%Y %H:%M:%S')
 
     @staticmethod
-    def get_logger(name: Any):
+    def get_logger(name):
         """
         Returning the Logger
 

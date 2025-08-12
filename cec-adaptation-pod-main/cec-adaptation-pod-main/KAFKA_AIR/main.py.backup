@@ -198,6 +198,7 @@ def execute(pod, kafka_data_source_template, hostname, namespace, main_pod, scri
     kafka_process(kafka_data_source_file_path, kafka_data_source_builder.data_source(), kafka_config_file_path,
                   STATUS_FILE_PATH, is_test_mode)
 
+
 def execute_for_non_running_pods(pod, kafka_data_source_template, namespace, kafka_config_file_path, is_test_mode,
                                  percentage):
     kafka_data_source_builder = KafkaDataSourceBuilder(kafka_data_source_template)

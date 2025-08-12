@@ -787,101 +787,100 @@ def analyze_code_structure(lines):
     structure = {
         'functions': [],
         'classes': [],
+        'class_methods': [],  # Track methods within classes separately
         'blocks': [],
         'imports': [],
         'decorators': [],
         'context_managers': []
     }
     
-    current_indent = 0
-    in_function = False
-    in_class = False
-    in_try_block = False
-    in_with_block = False
-    function_start = -1
-    class_start = -1
-    try_start = -1
-    with_start = -1
+    # Stack to track nested structures with their indentation levels
+    structure_stack = []
     
     for i, line in enumerate(lines):
         stripped = line.strip()
         if not stripped or stripped.startswith('#'):
             continue
             
-        # Track indentation
-        if line.startswith(' '):
-            current_indent = len(line) - len(line.lstrip())
+        # Calculate current indentation level
+        current_indent = len(line) - len(line.lstrip())
         
-        # Detect function definitions
-        if stripped.startswith(('def ', 'async def ')):
-            if in_function:
-                # End previous function
-                structure['functions'].append((function_start, i - 1))
-            in_function = True
-            function_start = i
+        # Close structures that have ended (when we return to a lower indentation)
+        while structure_stack and structure_stack[-1]['indent'] >= current_indent:
+            ended_structure = structure_stack.pop()
+            if ended_structure['type'] == 'class':
+                structure['classes'].append((ended_structure['start'], i - 1))
+            elif ended_structure['type'] == 'function':
+                if ended_structure.get('in_class', False):
+                    structure['class_methods'].append((ended_structure['start'], i - 1, ended_structure['class_start']))
+                else:
+                    structure['functions'].append((ended_structure['start'], i - 1))
         
         # Detect class definitions
         if stripped.startswith('class '):
-            if in_class:
-                # End previous class
-                structure['classes'].append((class_start, i - 1))
-            in_class = True
-            class_start = i
+            structure_stack.append({
+                'type': 'class',
+                'start': i,
+                'indent': current_indent
+            })
+        
+        # Detect function definitions
+        elif stripped.startswith(('def ', 'async def ')):
+            # Check if we're inside a class
+            in_class = False
+            class_start = -1
+            for struct in structure_stack:
+                if struct['type'] == 'class':
+                    in_class = True
+                    class_start = struct['start']
+                    break
+            
+            structure_stack.append({
+                'type': 'function',
+                'start': i,
+                'indent': current_indent,
+                'in_class': in_class,
+                'class_start': class_start
+            })
         
         # Detect imports
-        if stripped.startswith(('import ', 'from ')):
+        elif stripped.startswith(('import ', 'from ')):
             structure['imports'].append(i)
         
         # Detect decorators
-        if stripped.startswith('@'):
+        elif stripped.startswith('@'):
             structure['decorators'].append(i)
         
         # Detect try blocks
-        if stripped.startswith('try:'):
-            in_try_block = True
-            try_start = i
+        elif stripped.startswith('try:'):
+            structure_stack.append({
+                'type': 'try',
+                'start': i,
+                'indent': current_indent
+            })
         
         # Detect with blocks
-        if stripped.startswith('with '):
-            in_with_block = True
-            with_start = i
-        
-        # Detect block endings
-        if in_function and current_indent == 0 and stripped and not stripped.startswith(('def ', 'class ')):
-            if not stripped.startswith('#'):
-                in_function = False
-                structure['functions'].append((function_start, i - 1))
-                function_start = -1
-        
-        if in_class and current_indent == 0 and stripped and not stripped.startswith(('def ', 'class ')):
-            if not stripped.startswith('#'):
-                in_class = False
-                structure['classes'].append((class_start, i - 1))
-                class_start = -1
-        
-        # Detect try/except/finally endings
-        if in_try_block and stripped.startswith(('except', 'finally')):
-            if current_indent == 0:  # Top-level except/finally
-                in_try_block = False
-                structure['blocks'].append(('try', try_start, i - 1))
-                try_start = -1
-        
-        # Detect with statement endings
-        if in_with_block and current_indent == 0 and stripped and not stripped.startswith('with '):
-            if not stripped.startswith('#'):
-                in_with_block = False
-                structure['context_managers'].append((with_start, i - 1))
-                with_start = -1
+        elif stripped.startswith('with '):
+            structure_stack.append({
+                'type': 'with',
+                'start': i,
+                'indent': current_indent
+            })
     
-    # Handle any remaining open structures
-    if in_function:
-        structure['functions'].append((function_start, len(lines) - 1))
-    if in_class:
-        structure['classes'].append((class_start, len(lines) - 1))
-    if in_try_block:
-        structure['blocks'].append(('try', try_start, len(lines) - 1))
-    if in_with_block:
-        structure['context_managers'].append((with_start, len(lines) - 1))
+    # Handle any remaining open structures at end of file
+    while structure_stack:
+        ended_structure = structure_stack.pop()
+        if ended_structure['type'] == 'class':
+            structure['classes'].append((ended_structure['start'], len(lines) - 1))
+        elif ended_structure['type'] == 'function':
+            if ended_structure.get('in_class', False):
+                structure['class_methods'].append((ended_structure['start'], len(lines) - 1, ended_structure['class_start']))
+            else:
+                structure['functions'].append((ended_structure['start'], len(lines) - 1))
+        elif ended_structure['type'] == 'try':
+            structure['blocks'].append(('try', ended_structure['start'], len(lines) - 1))
+        elif ended_structure['type'] == 'with':
+            structure['context_managers'].append((ended_structure['start'], len(lines) - 1))
     
     return structure
 
@@ -892,72 +891,104 @@ def find_structural_break_point(chunk_lines, code_structure, chunk_start_line):
     
     chunk_end_line = chunk_start_line + len(chunk_lines) - 1
     
-    # Look for natural break points in reverse order
+    # Helper function to check if we're at the end of a complete structure
+    def is_end_of_complete_structure(line_num):
+        # Check if this line is the end of a class
+        for start, end in code_structure['classes']:
+            if end == line_num:
+                return True
+        
+        # Check if this line is the end of a top-level function
+        for start, end in code_structure['functions']:
+            if end == line_num:
+                return True
+        
+        # Check if this line is the end of a class method
+        for start, end, class_start in code_structure.get('class_methods', []):
+            if end == line_num:
+                return True
+        
+        return False
+    
+    # Look for perfect break points first (end of complete structures)
+    for i in range(len(chunk_lines) - 1, -1, -1):
+        current_line = chunk_start_line + i
+        line = chunk_lines[i].strip()
+        
+        # Perfect break points: end of complete structures followed by blank line
+        if is_end_of_complete_structure(current_line):
+            # Check if this is the end of a class or top-level function
+            is_class_end = any(end == current_line for start, end in code_structure['classes'])
+            is_function_end = any(end == current_line for start, end in code_structure['functions'])
+            
+            # Only break at end of classes or top-level functions, not class methods
+            if is_class_end or is_function_end:
+                # Check if the next line (if it exists) is blank or starts a new structure
+                if i + 1 < len(chunk_lines):
+                    next_line = chunk_lines[i + 1].strip()
+                    if next_line == '' or next_line.startswith(('class ', 'def ', 'async def ')):
+                        return i + 1
+                else:
+                    return i + 1
+        
+        # Blank lines at top level are excellent break points
+        if line == '' and is_at_top_level(current_line, code_structure):
+            return i + 1
+    
+    # Look for good break points (between different structures)
     for i in range(len(chunk_lines) - 1, -1, -1):
         line = chunk_lines[i].strip()
         current_line = chunk_start_line + i
         
-        # Perfect break points (blank lines at top level)
-        if line == '' and is_at_top_level(current_line, code_structure):
-            return i + 1
-        
         # End of import section
-        if line.startswith(('def ', 'class ', 'if ', 'for ', 'while ', 'try:', 'except:', 'finally:')):
-            if i > 0 and chunk_lines[i-1].strip() == '':
+        if i > 0 and line.startswith(('class ', 'def ', 'async def ')):
+            prev_line = chunk_lines[i-1].strip()
+            if prev_line == '' or prev_line.startswith(('import ', 'from ')):
                 return i
         
-        # End of complete block
-        if line in ['pass', 'return', 'break', 'continue', 'raise', 'yield'] and is_at_top_level(current_line, code_structure):
-            return i + 1
-        
-        # End of context manager
-        if line == ')' and i > 0 and 'with ' in chunk_lines[i-1]:
-            return i + 1
-        
-        # End of multi-line expression
-        if line == ')' and i > 0 and chunk_lines[i-1].strip().endswith(','):
-            return i + 1
-        
-        # End of list/dict comprehension
-        if line == ']' and i > 0 and chunk_lines[i-1].strip().endswith(','):
-            return i + 1
-    
-    # If no perfect break point, look for reasonable ones
-    for i in range(len(chunk_lines) - 1, -1, -1):
-        line = chunk_lines[i].strip()
-        
-        # Blank lines are always good break points
-        if line == '':
+        # End of docstring
+        if line.endswith('"""') or line.endswith("'''"):
             return i + 1
         
         # End of comment blocks
         if line.startswith('#'):
             if i > 0 and not chunk_lines[i-1].strip().startswith('#'):
                 return i + 1
-        
-        # End of docstring
-        if line.endswith('"""') or line.endswith("'''"):
+    
+    # Look for any blank lines as fallback
+    for i in range(len(chunk_lines) - 1, -1, -1):
+        line = chunk_lines[i].strip()
+        if line == '':
             return i + 1
     
-    # Last resort: break at a reasonable point, but avoid breaking functions/classes
+    # Last resort: break at a safe point that doesn't split structures
     safe_break = find_safe_break_point(chunk_lines, code_structure, chunk_start_line)
     return safe_break
 
 def is_at_top_level(line_number, code_structure):
     """Check if a line is at the top level (not inside a function or class)."""
+    # Check if line is inside a top-level function
     for start, end in code_structure['functions']:
         if start <= line_number <= end:
             return False
+    
+    # Check if line is inside a class
     for start, end in code_structure['classes']:
         if start <= line_number <= end:
             return False
+    
+    # Check if line is inside a class method
+    for start, end, class_start in code_structure.get('class_methods', []):
+        if start <= line_number <= end:
+            return False
+    
     return True
 
 def find_safe_break_point(chunk_lines, code_structure, chunk_start_line):
     """Find a safe break point that doesn't break functions, classes, or other structures."""
     chunk_end_line = chunk_start_line + len(chunk_lines) - 1
     
-    # Check if we're inside a function
+    # Check if we're inside a top-level function
     for start, end in code_structure['functions']:
         if start <= chunk_start_line <= end:
             # We're inside a function, find its end
@@ -967,15 +998,54 @@ def find_safe_break_point(chunk_lines, code_structure, chunk_start_line):
                 # Function extends beyond this chunk, don't break
                 return 0
     
-    # Check if we're inside a class
-    for start, end in code_structure['classes']:
+    # Check if we're inside a class method
+    for start, end, class_start in code_structure.get('class_methods', []):
         if start <= chunk_start_line <= end:
-            # We're inside a class, find its end
+            # We're inside a class method, find its end
             if end <= chunk_end_line:
                 return end - chunk_start_line + 1
             else:
-                # Class extends beyond this chunk, don't break
+                # Method extends beyond this chunk, don't break
                 return 0
+    
+    # Check if we're inside a class
+    for start, end in code_structure['classes']:
+        if start <= chunk_start_line <= end:
+            # We're inside a class, but not in a specific method
+            # Look for a safe break point between methods
+            safe_points = []
+            
+            # Find all class methods within this class
+            class_methods = []
+            for method_start, method_end, method_class_start in code_structure.get('class_methods', []):
+                if method_class_start == start:  # Method belongs to this class
+                    class_methods.append((method_start, method_end))
+            
+            # Sort methods by start line
+            class_methods.sort()
+            
+            # Find gaps between methods where we can safely break
+            for i, (method_start, method_end) in enumerate(class_methods):
+                if method_end < chunk_end_line:
+                    # Check if there's a gap after this method
+                    if i + 1 < len(class_methods):
+                        next_method_start = class_methods[i + 1][0]
+                        if method_end + 1 < next_method_start:
+                            # There's a gap, we can break here
+                            safe_points.append(method_end - chunk_start_line + 1)
+                    else:
+                        # This is the last method in the class
+                        safe_points.append(method_end - chunk_start_line + 1)
+            
+            # Return the latest safe point
+            if safe_points:
+                return max(safe_points)
+            
+            # If class extends beyond chunk and no safe break found, don't break
+            if end > chunk_end_line:
+                return 0
+            else:
+                return end - chunk_start_line + 1
     
     # Check if we're inside a try block
     for block_type, start, end in code_structure['blocks']:
@@ -1135,118 +1205,58 @@ def reassemble_chunks_intelligently(modernized_chunks, original_chunks):
         # Add chunk code
         reassembled_parts.append(cleaned_chunk)
         
-        # Add separator if this chunk doesn't end with a blank line and next chunk doesn't start with one
+        # Add appropriate separator between chunks
         if i < len(modernized_chunks) - 1:
-            current_chunk_ends_with_blank = cleaned_chunk.rstrip().endswith('\n\n') or cleaned_chunk.rstrip().endswith('')
-            next_chunk_starts_with_blank = modernized_chunks[i + 1].lstrip().startswith('\n') or modernized_chunks[i + 1].lstrip() == ''
+            current_chunk_lines = cleaned_chunk.rstrip().split('\n')
+            next_chunk_code = clean_chunk_code(modernized_chunks[i + 1])
+            next_chunk_lines = next_chunk_code.lstrip().split('\n')
             
-            # Add separator if needed
-            if not current_chunk_ends_with_blank and not next_chunk_starts_with_blank:
-                # Check if we're between different code structures
-                if original_chunk.get('complete_structures', False):
-                    reassembled_parts.append('\n')
+            # Check what the current chunk ends with
+            current_ends_with_blank = len(current_chunk_lines) > 0 and current_chunk_lines[-1].strip() == ''
+            
+            # Check what the next chunk starts with
+            next_starts_with_blank = len(next_chunk_lines) > 0 and next_chunk_lines[0].strip() == ''
+            next_starts_with_class_or_func = len(next_chunk_lines) > 0 and next_chunk_lines[0].strip().startswith(('class ', 'def ', 'async def '))
+            
+            # Determine appropriate separator
+            separator_needed = False
+            
+            if not current_ends_with_blank and not next_starts_with_blank:
+                # Need some kind of separator
+                if next_starts_with_class_or_func:
+                    # Need double newline before class/function definitions
+                    separator_needed = True
+                elif original_chunk.get('complete_structures', True):
+                    # Safe to add separator between complete structures
+                    separator_needed = True
+            
+            if separator_needed:
+                reassembled_parts.append('')  # This will create a blank line when joined
     
-    return '\n'.join(reassembled_parts)
+    # Join with single newlines, which will create proper spacing
+    result = '\n'.join(reassembled_parts)
+    
+    # Clean up any excessive blank lines (more than 2 consecutive)
+    import re
+    result = re.sub(r'\n\n\n+', '\n\n', result)
+    
+    return result
 
 def clean_chunk_code(chunk_code):
-    """Clean up chunk code to fix common corruption issues."""
+    """Clean up chunk code to fix common corruption issues - MINIMAL VERSION."""
     if not chunk_code:
         return chunk_code
     
-    import re
-    
-    # Fix missing newlines between imports
-    import_patterns = [
-        (r'import (\w+)import (\w+)', r'import \1\nimport \2'),
-        (r'from (\w+) import (\w+)from (\w+) import (\w+)', r'from \1 import \2\nfrom \3 import \4'),
-        (r'import (\w+)from (\w+) import (\w+)', r'import \1\nfrom \2 import \3'),
-        (r'from (\w+) import (\w+)import (\w+)', r'from \1 import \2\nimport \3'),
-    ]
-    
-    cleaned_code = chunk_code
-    for pattern, replacement in import_patterns:
-        cleaned_code = re.sub(pattern, replacement, cleaned_code)
-    
-    # Fix missing newlines after shebang
-    if cleaned_code.startswith('#!/'):
-        lines = cleaned_code.split('\n', 1)
-        if len(lines) > 1 and not lines[1].startswith('#'):
-            # Insert newline after shebang
-            cleaned_code = lines[0] + '\n' + lines[1]
-    
-    # Fix missing newlines between comment blocks
-    comment_patterns = [
-        (r'(# [^\n]+)(# [^\n]+)', r'\1\n\2'),
-        (r'(# [^\n]+)(import \w+)', r'\1\n\2'),
-        (r'(from \w+ import \w+)(# [^\n]+)', r'\1\n\2'),
-    ]
-    
-    for pattern, replacement in comment_patterns:
-        cleaned_code = re.sub(pattern, replacement, cleaned_code)
-    
-    # Fix missing newlines between imports and comments
-    cleaned_code = re.sub(r'(import \w+)(# [^\n]+)', r'\1\n\2', cleaned_code)
-    cleaned_code = re.sub(r'(from \w+ import \w+)(# [^\n]+)', r'\1\n\2', cleaned_code)
-    
-    # Fix missing newlines between imports and code
-    cleaned_code = re.sub(r'(import \w+)(\w+)', r'\1\n\2', cleaned_code)
-    cleaned_code = re.sub(r'(from \w+ import \w+)(\w+)', r'\1\n\2', cleaned_code)
-    
-    # Ensure proper spacing around class and function definitions
-    class_func_patterns = [
-        (r'(\w+)\s*class (\w+)', r'\1\n\nclass \2'),
-        (r'(\w+)\s*def (\w+)', r'\1\n\ndef \2'),
-    ]
-    
-    for pattern, replacement in class_func_patterns:
-        cleaned_code = re.sub(pattern, replacement, cleaned_code)
-    
-    # Remove random modernization examples that got mixed in
-    modernization_examples = [
-        r'print "The result is", result',
-        r'if len\(my_list\) > 0:',
-        r'print "List is not empty"',
-        r'for i in range\(0, len\(my_list\)\):',
-        r'print i, my_list\[i\]',
-        r'# Before.*?# After.*?print\(.*?\)',
-        r'# Before \(Python 2 style\).*?# After \(Python 3 style\).*?print\(.*?\)',
-        r'value = len\(my_list\)',
-        r'if value > 10:',
-        r'print\(value\)',
-        r'print "Processing data\.\.\."',
-        r'for key, value in my_dict\.iteritems\(\):',
-        r'if len\(value\) > 10:',
-        r'print "Key:", key, "has a long list"',
-    ]
-    
-    for pattern in modernization_examples:
-        cleaned_code = re.sub(pattern, '', cleaned_code, flags=re.DOTALL)
-    
-    # Fix missing newlines in sys.path.append calls
-    cleaned_code = re.sub(r'(sys\.path\.append\([^)]+\))(from \w+)', r'\1\n\2', cleaned_code)
-    
-    # Fix missing newlines between class methods
-    cleaned_code = re.sub(r'(\s+def \w+[^:]*:)(\s+def \w+)', r'\1\n\2', cleaned_code)
-    
-    # Fix missing newlines between class attributes
-    cleaned_code = re.sub(r'(\s+self\.\w+[^;]*;?)(\s+self\.\w+)', r'\1\n\2', cleaned_code)
-    
-    # Remove duplicate lines
-    lines = cleaned_code.split('\n')
+    # Only do minimal, safe cleaning that won't corrupt code structure
+    # Remove any trailing whitespace from lines but preserve the code structure
+    lines = chunk_code.split('\n')
     cleaned_lines = []
-    seen_lines = set()
     
     for line in lines:
-        stripped = line.strip()
-        if stripped and stripped not in seen_lines:
-            cleaned_lines.append(line)
-            seen_lines.add(stripped)
-        elif not stripped:
-            cleaned_lines.append(line)
+        # Only strip trailing whitespace, preserve leading whitespace (indentation)
+        cleaned_lines.append(line.rstrip())
     
-    cleaned_code = '\n'.join(cleaned_lines)
-    
-    return cleaned_code
+    return '\n'.join(cleaned_lines)
 
 def validate_reassembled_code(code):
     """Basic validation that the reassembled code has proper Python syntax structure."""

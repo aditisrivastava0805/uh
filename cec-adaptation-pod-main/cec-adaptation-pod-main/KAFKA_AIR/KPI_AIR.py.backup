@@ -222,6 +222,7 @@ class KPI_AIR:
             count = str(count).strip() if count else None
             self._logger.info(f'FDS_CLUSTER_DOWN_COUNT: {str(count)}')
             self.add_kafka_kpi(kafka_data_source_builder, "FDS_CLUSTER_DOWN_COUNT", str(count))
+
             # PROCESSES_DOWN_COUNT
             p = """cat /proc/cpuinfo | grep processor | wc -l """
             count, error = self.update_command(air, p)
